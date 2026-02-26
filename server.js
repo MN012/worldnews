@@ -9,7 +9,7 @@ const parser = new RSSParser({
     'User-Agent': 'WorldNews/1.0'
   }
 });
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Verified, fact-checked news sources organized by continent
 // All sources are internationally recognized for editorial standards
