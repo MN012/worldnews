@@ -16,31 +16,90 @@ const CONTINENT_ORDER = ['africa', 'asia', 'europe', 'north_america', 'south_ame
 const FEEDS = {
   africa: [
     { name: 'BBC Africa', url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml', logo: 'BBC' },
-    { name: 'Al Jazeera Africa', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'France24 Africa', url: 'https://www.france24.com/en/africa/rss', logo: 'F24' },
+    { name: 'DW Africa', url: 'https://rss.dw.com/xml/rss-en-africa', logo: 'DW' },
+    { name: 'CGTN Africa', url: 'https://www.cgtn.com/subscribe/rss/section/africa.xml', logo: 'CGTN' },
   ],
   asia: [
     { name: 'BBC Asia', url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', logo: 'BBC' },
-    { name: 'Al Jazeera Asia', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'France24 Asia', url: 'https://www.france24.com/en/asia-pacific/rss', logo: 'F24' },
+    { name: 'DW Asia', url: 'https://rss.dw.com/xml/rss-en-asia', logo: 'DW' },
+    { name: 'CNBC Asia', url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19832390', logo: 'CNBC' },
+    { name: 'CGTN', url: 'https://www.cgtn.com/subscribe/rss/section/asia.xml', logo: 'CGTN' },
   ],
   europe: [
     { name: 'BBC Europe', url: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml', logo: 'BBC' },
-    { name: 'DW News', url: 'https://rss.dw.com/xml/rss-en-world', logo: 'DW' },
+    { name: 'DW Europe', url: 'https://rss.dw.com/xml/rss-en-eu', logo: 'DW' },
+    { name: 'France24 Europe', url: 'https://www.france24.com/en/europe/rss', logo: 'F24' },
+    { name: 'Euronews', url: 'https://www.euronews.com/rss?level=theme&name=news', logo: 'EN' },
+    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
   ],
   north_america: [
     { name: 'BBC North America', url: 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml', logo: 'BBC' },
     { name: 'NPR News', url: 'https://feeds.npr.org/1001/rss.xml', logo: 'NPR' },
+    { name: 'France24 Americas', url: 'https://www.france24.com/en/americas/rss', logo: 'F24' },
+    { name: 'CNBC', url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114', logo: 'CNBC' },
+    { name: 'CBS News', url: 'https://www.cbsnews.com/latest/rss/main', logo: 'CBS' },
   ],
   south_america: [
     { name: 'BBC Latin America', url: 'https://feeds.bbci.co.uk/news/world/latin_america/rss.xml', logo: 'BBC' },
     { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'France24 Americas', url: 'https://www.france24.com/en/americas/rss', logo: 'F24' },
+    { name: 'DW News', url: 'https://rss.dw.com/xml/rss-en-world', logo: 'DW' },
   ],
   oceania: [
     { name: 'BBC Asia-Pacific', url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', logo: 'BBC' },
     { name: 'ABC Australia', url: 'https://www.abc.net.au/news/feed/2942460/rss.xml', logo: 'ABC' },
+    { name: 'France24 Asia-Pacific', url: 'https://www.france24.com/en/asia-pacific/rss', logo: 'F24' },
+    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
   ],
   antarctica: [
     { name: 'BBC Science', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', logo: 'BBC' },
     { name: 'DW Science', url: 'https://rss.dw.com/xml/rss-en-science', logo: 'DW' },
+    { name: 'Phys.org Earth', url: 'https://phys.org/rss-feed/earth-news/', logo: 'PHY' },
+  ],
+};
+
+// YouTube live news streams by continent
+const YOUTUBE_LIVES = {
+  africa: [
+    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
+    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+  ],
+  asia: [
+    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+    { name: 'CNA 24/7', id: 'XWq5kBlakcQ', channel: 'CNA' },
+    { name: 'WION Live', id: '9Auq9mYxFEE', channel: 'WION' },
+    { name: 'NHK World', id: 'f0lYkdA-Gtw', channel: 'NHK' },
+  ],
+  europe: [
+    { name: 'Euronews', id: 'pykpO5bQChY', channel: 'Euronews' },
+    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
+    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+    { name: 'Sky News', id: '9Auq9mYxFEE', channel: 'Sky News' },
+  ],
+  north_america: [
+    { name: 'NBC News NOW', id: 'Inga0sG0iRc', channel: 'NBC' },
+    { name: 'ABC News Live', id: 'YMmU6l9mPCw', channel: 'ABC' },
+    { name: 'CBS News 24/7', id: 'plJkgB9aNfA', channel: 'CBS' },
+    { name: 'Bloomberg TV', id: 'dp8PhLsUcFE', channel: 'Bloomberg' },
+  ],
+  south_america: [
+    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
+    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+  ],
+  oceania: [
+    { name: 'ABC News Australia', id: 'vz-RDetFU1I', channel: 'ABC AU' },
+    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+    { name: 'Sky News Australia', id: 'bM0StwTjFOE', channel: 'Sky AU' },
+  ],
+  antarctica: [
+    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
   ],
 };
 
@@ -194,14 +253,53 @@ async function getNewsForContinent(continent) {
   // Sort by date, newest first
   articles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
-  // Deduplicate by title similarity
-  const seen = new Set();
-  const unique = articles.filter(article => {
-    const key = article.title.toLowerCase().substring(0, 50);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // Smart deduplication: group similar articles, keep the best one
+  // "Best" = has image + longest snippet + most recent
+  const groups = [];
+  const assigned = new Set();
+
+  for (let i = 0; i < articles.length; i++) {
+    if (assigned.has(i)) continue;
+    const group = [articles[i]];
+    assigned.add(i);
+    const wordsA = articles[i].title.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 3);
+
+    for (let j = i + 1; j < articles.length; j++) {
+      if (assigned.has(j)) continue;
+      const wordsB = articles[j].title.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 3);
+      // Count overlapping significant words
+      const overlap = wordsA.filter(w => wordsB.includes(w)).length;
+      const similarity = overlap / Math.max(Math.min(wordsA.length, wordsB.length), 1);
+      if (similarity >= 0.5) {
+        group.push(articles[j]);
+        assigned.add(j);
+      }
+    }
+
+    // Pick the best article from the group
+    group.sort((a, b) => {
+      // Prefer articles with images
+      const imgA = a.image ? 1 : 0;
+      const imgB = b.image ? 1 : 0;
+      if (imgB !== imgA) return imgB - imgA;
+      // Then prefer longer snippets
+      const lenA = (a.snippet || '').length;
+      const lenB = (b.snippet || '').length;
+      if (lenB !== lenA) return lenB - lenA;
+      // Then prefer most recent
+      return new Date(b.pubDate) - new Date(a.pubDate);
+    });
+
+    // Keep the best, but note how many sources covered it
+    const best = group[0];
+    if (group.length > 1) {
+      best.sourceCount = group.length;
+      best.otherSources = group.slice(1).map(a => a.source);
+    }
+    groups.push(best);
+  }
+
+  const unique = groups;
 
   cache[continent] = { data: unique, timestamp: now };
   return unique;
@@ -556,6 +654,7 @@ async function fetchNews(continent) {
     }
 
     renderArticles(articles);
+    renderLiveStreams(continent);
   } catch (err) {
     console.error('Fetch error:', err);
     container.innerHTML = `
@@ -563,6 +662,83 @@ async function fetchNews(continent) {
         <p>Unable to load news. Please try again.</p>
       </div>
     `;
+  }
+}
+
+// ===== YouTube Live Streams =====
+function renderLiveStreams(continent) {
+  const streams = YOUTUBE_LIVES[continent];
+  if (!streams || streams.length === 0) return;
+
+  // Remove existing live section if any
+  const existing = document.getElementById('liveStreamsSection');
+  if (existing) existing.remove();
+
+  const section = document.createElement('div');
+  section.id = 'liveStreamsSection';
+  section.className = 'live-streams-section';
+  section.innerHTML = `
+    <div class="live-streams-header">
+      <div class="live-streams-title">
+        <span class="live-dot-inline"></span>
+        Live News Streams
+      </div>
+      <button class="live-toggle-btn" onclick="toggleLiveStreams()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+    <div class="live-streams-grid" id="liveStreamsGrid">
+      ${streams.map(s => `
+        <div class="live-stream-card">
+          <div class="live-stream-embed" id="embed-${s.id}">
+            <img class="live-stream-thumb" src="https://img.youtube.com/vi/${s.id}/mqdefault.jpg"
+                 alt="${escapeHtml(s.name)}" loading="lazy"
+                 onclick="loadYouTubeEmbed('${s.id}', this)">
+            <div class="live-stream-play" onclick="loadYouTubeEmbed('${s.id}', this.previousElementSibling)">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </div>
+            <div class="live-badge-overlay">
+              <span class="live-dot-small"></span> LIVE
+            </div>
+          </div>
+          <div class="live-stream-info">
+            <span class="live-stream-name">${escapeHtml(s.name)}</span>
+            <span class="live-stream-channel">${escapeHtml(s.channel)}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  const container = document.getElementById('newsContainer');
+  container.parentNode.insertBefore(section, container);
+}
+
+function loadYouTubeEmbed(videoId, imgEl) {
+  const embedDiv = document.getElementById('embed-' + videoId);
+  embedDiv.innerHTML = `
+    <iframe
+      src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  `;
+}
+
+function toggleLiveStreams() {
+  const grid = document.getElementById('liveStreamsGrid');
+  const btn = grid.parentElement.querySelector('.live-toggle-btn svg');
+  if (grid.style.display === 'none') {
+    grid.style.display = 'grid';
+    btn.style.transform = 'rotate(0deg)';
+  } else {
+    grid.style.display = 'none';
+    btn.style.transform = 'rotate(-90deg)';
   }
 }
 
@@ -661,7 +837,9 @@ function renderCard(article, index) {
             <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
               <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
             </svg>
-            Verified source
+            ${article.sourceCount > 1
+              ? `<span class="multi-source" title="Also covered by: ${escapeHtml((article.otherSources || []).join(', '))}">${article.sourceCount} sources</span>`
+              : 'Verified source'}
           </div>
           <div class="card-actions">
             <button class="card-action-btn ${saved ? 'bookmarked' : ''}"
