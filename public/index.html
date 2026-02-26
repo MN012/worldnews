@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorldNews - Live News by Continent</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="globe-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+            <path d="M4.93 4.93a18 18 0 0 0 14.14 0" opacity="0.5"/>
+            <path d="M4.93 19.07a18 18 0 0 1 14.14 0" opacity="0.5"/>
+          </svg>
+        </div>
+        <h1>WorldNews</h1>
+      </div>
+      <div class="header-actions">
+        <div class="live-indicator">
+          <span class="live-dot"></span>
+          <span class="live-text">LIVE</span>
+          <span class="last-updated" id="lastUpdated"></span>
+        </div>
+        <button class="icon-btn" id="bookmarksToggle" onclick="toggleBookmarks()" title="Saved articles">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="bookmark-count" id="bookmarkCount" style="display:none">0</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <nav id="continentNav" class="continent-nav">
+    <!-- Populated by JS -->
+  </nav>
+
+  <main>
+    <!-- Search bar -->
+    <div class="search-bar" id="searchBar" style="display:none">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search articles..." oninput="handleSearch(this.value)">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none">&times;</button>
+      </div>
+      <span class="search-results-count" id="searchResultsCount"></span>
+    </div>
+
+    <div class="source-badge-bar" id="sourceBadges">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Trending topics -->
+    <div class="trending-bar" id="trendingBar" style="display:none">
+      <div class="trending-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+        Trending
+      </div>
+      <div class="trending-topics" id="trendingTopics">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <div class="filter-bar" id="filterBar" style="display:none">
+      <div class="filter-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        Filter by country
+      </div>
+      <div class="country-chips" id="countryChips">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <div class="toolbar" id="toolbar" style="display:none">
+      <div class="summarize-bar" id="summarizeBar">
+        <button class="summarize-btn" id="summarizeBtn" onclick="summarizeNews()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Summarize Today's News
+        </button>
+      </div>
+      <div class="article-count" id="articleCount"></div>
+    </div>
+
+    <!-- Bookmarks panel -->
+    <div class="bookmarks-panel" id="bookmarksPanel" style="display:none">
+      <div class="bookmarks-header">
+        <h3>Saved Articles</h3>
+        <button class="icon-btn" onclick="toggleBookmarks()">&times;</button>
+      </div>
+      <div class="bookmarks-list" id="bookmarksList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div class="summary-overlay" id="summaryOverlay" style="display:none" onclick="closeSummary(event)">
+      <div class="summary-panel">
+        <div class="summary-header">
+          <div class="summary-title">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            <span>Today's News Summary</span>
+          </div>
+          <button class="summary-close" onclick="closeSummary()">&times;</button>
+        </div>
+        <div class="summary-continent" id="summaryContinentLabel"></div>
+        <div class="summary-body" id="summaryBody">
+          <!-- Streamed content appears here -->
+        </div>
+        <div class="summary-footer">
+          <span>Smart summary &middot; Based on verified sources only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="news-container" id="newsContainer">
+      <div class="placeholder" id="placeholder">
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M2 12h20"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+        </svg>
+        <p>Select a continent to view the latest news</p>
+        <span class="placeholder-sub">All news sourced from verified, fact-checked outlets</span>
+        <div class="keyboard-hint">
+          <kbd>1</kbd>-<kbd>7</kbd> to select continent &middot; <kbd>/</kbd> to search &middot; <kbd>B</kbd> bookmarks
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scroll to top -->
+  <button class="scroll-top" id="scrollTop" onclick="scrollToTop()" title="Back to top">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  </button>
+
+  <footer>
+    <p>Sources: BBC News, Reuters, Al Jazeera, NPR, AP News, DW, ABC Australia</p>
+    <p class="footer-note">All sources are internationally recognized for editorial standards and fact-checking</p>
+    <p class="footer-shortcuts">Keyboard: <kbd>1</kbd>-<kbd>7</kbd> continents &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> navigate &middot; <kbd>/</kbd> search &middot; <kbd>B</kbd> bookmarks &middot; <kbd>S</kbd> summarize &middot; <kbd>Esc</kbd> close</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
