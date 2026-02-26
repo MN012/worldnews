@@ -101,10 +101,61 @@ async function fetchFeed(source) {
       const description = item.querySelector('description')?.textContent || '';
       const snippet = description.replace(/<[^>]*>/g, '').substring(0, 200);
 
-      // Try to get image
+      // Extract media: try multiple RSS media patterns
       const enclosure = item.querySelector('enclosure');
-      const mediaContent = item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'content')[0];
-      const image = enclosure?.getAttribute('url') || mediaContent?.getAttribute('url') || null;
+      const enclosureUrl = enclosure?.getAttribute('url') || '';
+      const enclosureType = enclosure?.getAttribute('type') || '';
+
+      // media:content (Yahoo Media RSS namespace)
+      const mediaContents = item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'content');
+      // media:thumbnail
+      const mediaThumbs = item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'thumbnail');
+
+      let image = null;
+      let video = null;
+      let mediaType = 'article'; // 'article', 'video', 'gallery'
+
+      // Check enclosure
+      if (enclosureType.startsWith('video/') || enclosureUrl.match(/\.(mp4|webm|m3u8)/i)) {
+        video = enclosureUrl;
+        mediaType = 'video';
+      } else if (enclosureType.startsWith('image/') || enclosureUrl.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+        image = enclosureUrl;
+      }
+
+      // Check media:content elements
+      for (let m = 0; m < mediaContents.length; m++) {
+        const mc = mediaContents[m];
+        const url = mc.getAttribute('url') || '';
+        const medium = mc.getAttribute('medium') || '';
+        const type = mc.getAttribute('type') || '';
+
+        if (medium === 'video' || type.startsWith('video/') || url.match(/\.(mp4|webm|m3u8)/i)) {
+          video = url;
+          mediaType = 'video';
+        } else if (!image && (medium === 'image' || type.startsWith('image/') || url.match(/\.(jpg|jpeg|png|gif|webp)/i) || url)) {
+          image = url;
+        }
+      }
+
+      // Check media:thumbnail
+      if (!image) {
+        for (let t = 0; t < mediaThumbs.length; t++) {
+          const thumbUrl = mediaThumbs[t].getAttribute('url');
+          if (thumbUrl) { image = thumbUrl; break; }
+        }
+      }
+
+      // Fallback: extract image from HTML description
+      if (!image) {
+        const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch) image = imgMatch[1];
+      }
+
+      // Detect video from link URL patterns
+      if (!video && link.match(/\/video\//i)) {
+        mediaType = 'video';
+      }
 
       articles.push({
         title,
@@ -114,6 +165,8 @@ async function fetchFeed(source) {
         source: source.name,
         sourceLogo: source.logo,
         image,
+        video,
+        mediaType,
       });
     });
 
@@ -515,13 +568,16 @@ async function fetchNews(continent) {
 
 // ===== Skeleton Loading =====
 function buildSkeletonHTML() {
-  const cards = Array.from({ length: 6 }, () => `
+  const cards = Array.from({ length: 6 }, (_, i) => `
     <div class="skeleton-card">
-      <div class="skeleton-line header"></div>
-      <div class="skeleton-line title long"></div>
-      <div class="skeleton-line medium"></div>
-      <div class="skeleton-line long"></div>
-      <div class="skeleton-line short"></div>
+      ${i % 3 !== 2 ? '<div class="skeleton-image"></div>' : ''}
+      <div class="skeleton-body">
+        <div class="skeleton-line header"></div>
+        <div class="skeleton-line title long"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line long"></div>
+        <div class="skeleton-line short"></div>
+      </div>
     </div>
   `).join('');
   return `<div class="skeleton-grid">${cards}</div>`;
@@ -549,49 +605,82 @@ function renderCard(article, index) {
   const logoClass = article.sourceLogo?.toLowerCase() || '';
   const timeAgo = getTimeAgo(new Date(article.pubDate));
   const isBreaking = isBreakingNews(new Date(article.pubDate));
+  const isVideo = article.mediaType === 'video';
   const saved = isBookmarked(article.link);
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
 
-  return `
-    <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card" style="animation-delay: ${index * 0.04}s">
-      <div class="card-source">
-        <div class="source-tag">
-          <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
-          <span class="source-name">${escapeHtml(article.source)}</span>
-        </div>
-        <div class="card-meta">
-          ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
-          <span class="card-time">${timeAgo}</span>
+  // Build image/media section
+  let mediaHTML = '';
+  if (article.image) {
+    mediaHTML = `
+      <div class="card-media">
+        <img src="${escapeHtml(article.image)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
+        ${isVideo ? `
+          <div class="media-badge video-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Video
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else if (isVideo) {
+    mediaHTML = `
+      <div class="card-media no-image">
+        <div class="media-badge video-badge">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Video
         </div>
       </div>
-      <h3 class="card-title">${escapeHtml(article.title)}</h3>
-      ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
-      <div class="card-footer">
-        <div class="card-verified">
-          <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
-            <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
-          </svg>
-          Verified source
+    `;
+  }
+
+  return `
+    <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
+       class="news-card ${article.image ? 'has-media' : ''}" style="animation-delay: ${index * 0.04}s">
+      ${mediaHTML}
+      <div class="card-body">
+        <div class="card-source">
+          <div class="source-tag">
+            <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
+            <span class="source-name">${escapeHtml(article.source)}</span>
+          </div>
+          <div class="card-meta">
+            ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
+            <span class="card-time">${timeAgo}</span>
+          </div>
         </div>
-        <div class="card-actions">
-          <button class="card-action-btn ${saved ? 'bookmarked' : ''}"
-                  onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapeHtml(article.source)}', event)"
-                  title="${saved ? 'Remove bookmark' : 'Save article'}">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        <h3 class="card-title">${escapeHtml(article.title)}</h3>
+        ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
+        <div class="card-footer">
+          <div class="card-verified">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
             </svg>
-          </button>
-          <button class="card-action-btn" onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)" title="Share">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="18" cy="5" r="3"/>
-              <circle cx="6" cy="12" r="3"/>
-              <circle cx="18" cy="19" r="3"/>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-          </button>
+            Verified source
+          </div>
+          <div class="card-actions">
+            <button class="card-action-btn ${saved ? 'bookmarked' : ''}"
+                    onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapeHtml(article.source)}', event)"
+                    title="${saved ? 'Remove bookmark' : 'Save article'}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+            <button class="card-action-btn" onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)" title="Share">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </a>
