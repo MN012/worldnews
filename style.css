@@ -685,6 +685,12 @@ main {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.card-source-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .card-source {
   display: flex;
   align-items: center;
@@ -784,6 +790,13 @@ main {
   justify-content: space-between;
 }
 
+.card-footer-new {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .card-verified {
   display: flex;
   align-items: center;
@@ -791,6 +804,19 @@ main {
   font-size: 0.7rem;
   color: var(--green);
   font-weight: 500;
+}
+
+.card-verified-new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--green);
+  font-weight: 500;
+}
+
+.card-verified-new svg {
+  flex-shrink: 0;
 }
 
 .card-verified svg {
@@ -1109,6 +1135,30 @@ main {
   background: #fff;
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
+}
+
+.live-stream-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.live-stream-info-overlay .source-logo {
+  width: 24px;
+  height: 24px;
+  font-size: 0.5rem;
+}
+
+.live-stream-info-overlay .live-stream-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 .live-stream-info {

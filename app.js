@@ -711,13 +711,6 @@ function renderLiveStreams(continent) {
 
   const container = document.getElementById('newsContainer');
   container.parentNode.insertBefore(section, container);
-
-  // Move summarize button here
-  const summarizeBar = document.getElementById('summarizeBar');
-  const actionsContainer = document.getElementById('live-streams-actions-container');
-  if (summarizeBar && actionsContainer) {
-    actionsContainer.appendChild(summarizeBar);
-  }
 }
 
 function loadYouTubeEmbed(videoId, imgEl) {
