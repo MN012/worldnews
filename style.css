@@ -73,13 +73,11 @@ body {
 
 /* ===== Header ===== */
 header {
-  background: var(--glass);
-  border-bottom: 1px solid var(--glass-border);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 
 .header-inner {

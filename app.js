@@ -638,8 +638,7 @@ async function fetchNews(continent) {
     currentArticles = articles;
     activeCountryFilter = null;
 
-    // Show toolbar, search bar
-    document.getElementById('toolbar').style.display = 'flex';
+    // Show search bar
     document.getElementById('searchBar').style.display = 'flex';
 
     buildCountryFilter(articles);
@@ -741,14 +740,13 @@ function toggleLiveStreams() {
 
 // ===== Skeleton Loading =====
 function buildSkeletonHTML() {
-  const cards = Array.from({ length: 6 }, (_, i) => `
+  const cards = Array.from({ length: 6 }, () => `
     <div class="skeleton-card">
-      ${i % 3 !== 2 ? '<div class="skeleton-image"></div>' : ''}
       <div class="skeleton-body">
         <div class="skeleton-line header"></div>
         <div class="skeleton-line title long"></div>
-        <div class="skeleton-line medium"></div>
         <div class="skeleton-line long"></div>
+        <div class="skeleton-line medium"></div>
         <div class="skeleton-line short"></div>
       </div>
     </div>
@@ -879,42 +877,10 @@ const STOP_WORDS = new Set([
   'people', 'first', 'last', 'year', 'years', 'time', 'news', 'world', 'back', 'make', 'many', 'most',
 ]);
 
-function buildTrendingTopics(articles) {
+function buildTrendingTopics() {
   const bar = document.getElementById('trendingBar');
-  const container = document.getElementById('trendingTopics');
-
-  if (articles.length < 3) {
-    bar.style.display = 'none';
-    return;
-  }
-
-  const freq = {};
-  for (const article of articles) {
-    const text = `${article.title}`.toLowerCase();
-    const words = text.match(/[a-z]{4,}/g) || [];
-    const seen = new Set();
-    for (const word of words) {
-      if (STOP_WORDS.has(word) || seen.has(word)) continue;
-      seen.add(word);
-      freq[word] = (freq[word] || 0) + 1;
-    }
-  }
-
-  const topics = Object.entries(freq)
-    .filter(([, count]) => count >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
-
-  if (topics.length === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-
-  bar.style.display = 'flex';
-  container.innerHTML = topics.map(t =>
-    `<button class="trending-topic" onclick="searchTopic('${escapeHtml(t)}')">${escapeHtml(t)}</button>`
-  ).join('');
+  // Trending bar hidden in current design
+  bar.style.display = 'none';
 }
 
 function searchTopic(topic) {

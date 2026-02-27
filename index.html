@@ -88,26 +88,13 @@
   </div>
 
   <main>
-    <div class="search-results-count-container" style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
-      <span class="search-results-count" id="searchResultsCount"></span>
+    <!-- Trending & toolbar hidden, kept for JS compatibility -->
+    <span class="search-results-count" id="searchResultsCount" style="display:none"></span>
+    <div id="trendingBar" style="display:none">
+      <div id="trendingTopics"></div>
     </div>
-
-    <!-- Trending topics -->
-    <div class="trending-bar" id="trendingBar" style="display:none">
-      <div class="trending-label">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-          <polyline points="17 6 23 6 23 12"/>
-        </svg>
-        Trending
-      </div>
-      <div class="trending-topics" id="trendingTopics">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-
-    <div class="toolbar" id="toolbar" style="display:none">
-      <div class="article-count" id="articleCount"></div>
+    <div id="toolbar" style="display:none">
+      <div id="articleCount"></div>
     </div>
 
     <!-- Bookmarks panel -->
