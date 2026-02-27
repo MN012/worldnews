@@ -106,12 +106,12 @@ const YOUTUBE_LIVES = {
 const REFRESH_INTERVAL = 60 * 1000;
 
 const COUNTRIES_BY_CONTINENT = {
-  africa: ['Nigeria','South Africa','Kenya','Egypt','Ethiopia','Ghana','Tanzania','Uganda','Morocco','Algeria','Sudan','Libya','Tunisia','Senegal','Cameroon','Congo','Somalia','Zimbabwe','Mozambique','Angola','Mali','Niger','Rwanda','Ivory Coast','Madagascar'],
-  asia: ['China','India','Japan','South Korea','North Korea','Indonesia','Pakistan','Bangladesh','Philippines','Vietnam','Thailand','Myanmar','Malaysia','Taiwan','Iran','Iraq','Syria','Saudi Arabia','Israel','Palestine','Turkey','Afghanistan','Yemen','Lebanon','Jordan',['UAE','United Arab Emirates'],'Qatar','Kuwait','Oman','Nepal','Sri Lanka','Cambodia','Laos','Mongolia','Uzbekistan','Kazakhstan','Singapore','Hong Kong'],
-  europe: ['Ukraine','Russia','France','Germany',['UK','Britain','England','Scotland'],'Spain','Italy','Poland','Netherlands','Belgium','Sweden','Norway','Denmark','Finland','Greece','Portugal','Ireland','Austria','Switzerland',['Czech Republic','Czech'],'Romania','Hungary','Serbia','Croatia','Bulgaria','Slovakia','Lithuania','Latvia','Estonia','Moldova','Belarus','Georgia','Albania','Kosovo','Bosnia','Montenegro','Iceland','Luxembourg','Malta','Cyprus'],
-  north_america: [['United States','US','USA','America'],'Canada','Mexico','Cuba','Haiti','Jamaica','Dominican Republic','Guatemala','Honduras','El Salvador','Nicaragua','Costa Rica','Panama','Puerto Rico','Trinidad','Bahamas','Barbados'],
-  south_america: ['Brazil','Argentina','Colombia','Chile','Peru','Venezuela','Ecuador','Bolivia','Paraguay','Uruguay','Guyana','Suriname'],
-  oceania: ['Australia','New Zealand','Fiji','Papua New Guinea','Samoa','Tonga','Solomon Islands','Vanuatu'],
+  africa: ['Nigeria', 'South Africa', 'Kenya', 'Egypt', 'Ethiopia', 'Ghana', 'Tanzania', 'Uganda', 'Morocco', 'Algeria', 'Sudan', 'Libya', 'Tunisia', 'Senegal', 'Cameroon', 'Congo', 'Somalia', 'Zimbabwe', 'Mozambique', 'Angola', 'Mali', 'Niger', 'Rwanda', 'Ivory Coast', 'Madagascar'],
+  asia: ['China', 'India', 'Japan', 'South Korea', 'North Korea', 'Indonesia', 'Pakistan', 'Bangladesh', 'Philippines', 'Vietnam', 'Thailand', 'Myanmar', 'Malaysia', 'Taiwan', 'Iran', 'Iraq', 'Syria', 'Saudi Arabia', 'Israel', 'Palestine', 'Turkey', 'Afghanistan', 'Yemen', 'Lebanon', 'Jordan', ['UAE', 'United Arab Emirates'], 'Qatar', 'Kuwait', 'Oman', 'Nepal', 'Sri Lanka', 'Cambodia', 'Laos', 'Mongolia', 'Uzbekistan', 'Kazakhstan', 'Singapore', 'Hong Kong'],
+  europe: ['Ukraine', 'Russia', 'France', 'Germany', ['UK', 'Britain', 'England', 'Scotland'], 'Spain', 'Italy', 'Poland', 'Netherlands', 'Belgium', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Greece', 'Portugal', 'Ireland', 'Austria', 'Switzerland', ['Czech Republic', 'Czech'], 'Romania', 'Hungary', 'Serbia', 'Croatia', 'Bulgaria', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia', 'Moldova', 'Belarus', 'Georgia', 'Albania', 'Kosovo', 'Bosnia', 'Montenegro', 'Iceland', 'Luxembourg', 'Malta', 'Cyprus'],
+  north_america: [['United States', 'US', 'USA', 'America'], 'Canada', 'Mexico', 'Cuba', 'Haiti', 'Jamaica', 'Dominican Republic', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama', 'Puerto Rico', 'Trinidad', 'Bahamas', 'Barbados'],
+  south_america: ['Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela', 'Ecuador', 'Bolivia', 'Paraguay', 'Uruguay', 'Guyana', 'Suriname'],
+  oceania: ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'Samoa', 'Tonga', 'Solomon Islands', 'Vanuatu'],
   antarctica: ['Antarctica'],
 };
 
@@ -307,13 +307,13 @@ async function getNewsForContinent(continent) {
 
 // ===== Extractive Summary (client-side) =====
 const SUMMARY_STOP_WORDS = new Set([
-  'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
-  'is','are','was','were','be','been','has','had','have','do','does','did',
-  'will','would','could','should','may','might','shall','can','this','that',
-  'it','its','from','as','not','no','so','if','than','then','more','also',
-  'into','over','after','before','about','up','out','new','says','said','he',
-  'she','they','their','his','her','who','what','when','where','how','why',
-  'all','been','being','some','any','each','which','us','we','our','you',
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+  'is', 'are', 'was', 'were', 'be', 'been', 'has', 'had', 'have', 'do', 'does', 'did',
+  'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'this', 'that',
+  'it', 'its', 'from', 'as', 'not', 'no', 'so', 'if', 'than', 'then', 'more', 'also',
+  'into', 'over', 'after', 'before', 'about', 'up', 'out', 'new', 'says', 'said', 'he',
+  'she', 'they', 'their', 'his', 'her', 'who', 'what', 'when', 'where', 'how', 'why',
+  'all', 'been', 'being', 'some', 'any', 'each', 'which', 'us', 'we', 'our', 'you',
 ]);
 
 function extractKeywords(articles) {
@@ -680,14 +680,9 @@ function renderLiveStreams(continent) {
   section.innerHTML = `
     <div class="live-streams-header">
       <div class="live-streams-title">
-        <span class="live-dot-inline"></span>
         Live News Streams
       </div>
-      <button class="live-toggle-btn" onclick="toggleLiveStreams()">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
+      <div id="live-streams-actions-container"></div>
     </div>
     <div class="live-streams-grid" id="liveStreamsGrid">
       ${streams.map(s => `
@@ -704,10 +699,10 @@ function renderLiveStreams(continent) {
             <div class="live-badge-overlay">
               <span class="live-dot-small"></span> LIVE
             </div>
-          </div>
-          <div class="live-stream-info">
-            <span class="live-stream-name">${escapeHtml(s.name)}</span>
-            <span class="live-stream-channel">${escapeHtml(s.channel)}</span>
+            <div class="live-stream-info-overlay">
+              <div class="source-logo ${s.channel.replace(/[^a-zA-Z]/g, '').toLowerCase()}">${s.channel.substring(0, 2).toUpperCase()}</div>
+              <span class="live-stream-name">${escapeHtml(s.name)}</span>
+            </div>
           </div>
         </div>
       `).join('')}
@@ -716,6 +711,13 @@ function renderLiveStreams(continent) {
 
   const container = document.getElementById('newsContainer');
   container.parentNode.insertBefore(section, container);
+
+  // Move summarize button here
+  const summarizeBar = document.getElementById('summarizeBar');
+  const actionsContainer = document.getElementById('live-streams-actions-container');
+  if (summarizeBar && actionsContainer) {
+    actionsContainer.appendChild(summarizeBar);
+  }
 }
 
 function loadYouTubeEmbed(videoId, imgEl) {
@@ -772,9 +774,8 @@ function renderArticles(articles) {
       </div>`;
     return;
   }
-  container.innerHTML = `<div class="news-grid">${
-    articles.map((article, i) => renderCard(article, i)).join('')
-  }</div>`;
+  container.innerHTML = `<div class="news-grid">${articles.map((article, i) => renderCard(article, i)).join('')
+    }</div>`;
 }
 
 function renderCard(article, index) {
@@ -786,78 +787,23 @@ function renderCard(article, index) {
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
 
-  // Build image/media section
-  let mediaHTML = '';
-  if (article.image) {
-    mediaHTML = `
-      <div class="card-media">
-        <img src="${escapeHtml(article.image)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
-        ${isVideo ? `
-          <div class="media-badge video-badge">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            Video
-          </div>
-        ` : ''}
-      </div>
-    `;
-  } else if (isVideo) {
-    mediaHTML = `
-      <div class="card-media no-image">
-        <div class="media-badge video-badge">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Video
-        </div>
-      </div>
-    `;
-  }
-
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card ${article.image ? 'has-media' : ''}" style="animation-delay: ${index * 0.04}s">
-      ${mediaHTML}
+       class="news-card" style="animation-delay: ${index * 0.04}s">
       <div class="card-body">
-        <div class="card-source">
-          <div class="source-tag">
-            <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
-            <span class="source-name">${escapeHtml(article.source)}</span>
-          </div>
-          <div class="card-meta">
-            ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
-            <span class="card-time">${timeAgo}</span>
-          </div>
+        <div class="card-source-header">
+          <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
+          <span class="source-name">${escapeHtml(article.source)}</span>
         </div>
         <h3 class="card-title">${escapeHtml(article.title)}</h3>
         ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
-        <div class="card-footer">
-          <div class="card-verified">
+        <div class="card-footer-new">
+          <span class="card-time">${timeAgo}</span>
+          <div class="card-verified-new">
             <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
               <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
             </svg>
-            ${article.sourceCount > 1
-              ? `<span class="multi-source" title="Also covered by: ${escapeHtml((article.otherSources || []).join(', '))}">${article.sourceCount} sources</span>`
-              : 'Verified source'}
-          </div>
-          <div class="card-actions">
-            <button class="card-action-btn ${saved ? 'bookmarked' : ''}"
-                    onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapeHtml(article.source)}', event)"
-                    title="${saved ? 'Remove bookmark' : 'Save article'}">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-            <button class="card-action-btn" onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)" title="Share">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-            </button>
+            Verified source
           </div>
         </div>
       </div>
@@ -882,11 +828,11 @@ function shareArticle(link, title, event) {
     event.stopPropagation();
   }
   if (navigator.share) {
-    navigator.share({ title, url: link }).catch(() => {});
+    navigator.share({ title, url: link }).catch(() => { });
   } else {
     navigator.clipboard.writeText(link).then(() => {
       showToast('Link copied to clipboard');
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -932,10 +878,10 @@ function applyFilters() {
 
 // ===== Trending Topics =====
 const STOP_WORDS = new Set([
-  'the','that','this','with','from','have','been','were','will','would','could','should',
-  'what','when','where','which','their','there','they','them','than','then','into','over',
-  'after','before','about','also','more','some','other','just','says','said','over','under',
-  'people','first','last','year','years','time','news','world','back','make','many','most',
+  'the', 'that', 'this', 'with', 'from', 'have', 'been', 'were', 'will', 'would', 'could', 'should',
+  'what', 'when', 'where', 'which', 'their', 'there', 'they', 'them', 'than', 'then', 'into', 'over',
+  'after', 'before', 'about', 'also', 'more', 'some', 'other', 'just', 'says', 'said', 'over', 'under',
+  'people', 'first', 'last', 'year', 'years', 'time', 'news', 'world', 'back', 'make', 'many', 'most',
 ]);
 
 function buildTrendingTopics(articles) {
@@ -1112,10 +1058,10 @@ async function summarizeNews() {
     let articles = currentArticles;
     if (activeCountryFilter) {
       const ALIASES = {
-        'United States': ['united states','us','usa','america'],
-        'UK': ['uk','britain','england','scotland'],
-        'UAE': ['uae','united arab emirates'],
-        'Czech Republic': ['czech republic','czech'],
+        'United States': ['united states', 'us', 'usa', 'america'],
+        'UK': ['uk', 'britain', 'england', 'scotland'],
+        'UAE': ['uae', 'united arab emirates'],
+        'Czech Republic': ['czech republic', 'czech'],
       };
       const terms = ALIASES[activeCountryFilter] || [activeCountryFilter.toLowerCase()];
       articles = articles.filter(a => {
