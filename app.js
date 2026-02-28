@@ -1,5 +1,10 @@
 // ===== Configuration =====
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+let currentProxyIndex = 0;
 
 const CONTINENT_EMOJIS = {
   africa: '🌍',
@@ -143,11 +148,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ===== RSS Fetching (client-side) =====
+async function fetchWithProxy(url) {
+  // Try each proxy in order, starting from the last one that worked
+  for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+    const proxyIdx = (currentProxyIndex + attempt) % CORS_PROXIES.length;
+    const proxy = CORS_PROXIES[proxyIdx];
+    try {
+      const res = await fetch(proxy + encodeURIComponent(url), { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (!text || text.length < 50) throw new Error('Empty response');
+      currentProxyIndex = proxyIdx; // remember which proxy worked
+      return text;
+    } catch (err) {
+      console.warn(`Proxy ${proxyIdx} failed for ${url}: ${err.message}`);
+    }
+  }
+  throw new Error('All proxies failed');
+}
+
 async function fetchFeed(source) {
   try {
-    const res = await fetch(CORS_PROXY + encodeURIComponent(source.url));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
+    const text = await fetchWithProxy(source.url);
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
 
@@ -655,6 +677,7 @@ async function fetchNews(continent) {
     }
 
     renderArticles(articles);
+    buildNewsTicker(articles);
     renderLiveStreams(continent);
   } catch (err) {
     console.error('Fetch error:', err);
@@ -767,11 +790,12 @@ function renderArticles(articles) {
       </div>`;
     return;
   }
-  container.innerHTML = `<div class="news-grid">${articles.map((article, i) => renderCard(article, i)).join('')
+  container.innerHTML = `<div class="news-grid">${articles.map(article => renderCard(article)).join('')
     }</div>`;
+  setupScrollReveal();
 }
 
-function renderCard(article, index) {
+function renderCard(article) {
   const logoClass = article.sourceLogo?.toLowerCase() || '';
   const timeAgo = getTimeAgo(new Date(article.pubDate));
   const isBreaking = isBreakingNews(new Date(article.pubDate));
@@ -782,7 +806,7 @@ function renderCard(article, index) {
 
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card" style="animation-delay: ${index * 0.04}s">
+       class="news-card reveal-card">
       <div class="card-body">
         <div class="card-source-header">
           <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
@@ -1103,6 +1127,56 @@ function renderMarkdown(text) {
     .replace(/(<\/h[234]>)<\/p>/g, '$1')
     .replace(/<p>(<ul>)/g, '$1')
     .replace(/(<\/ul>)<\/p>/g, '$1');
+}
+
+// ===== News Ticker =====
+function buildNewsTicker(articles) {
+  // Remove existing ticker
+  const existing = document.getElementById('newsTicker');
+  if (existing) existing.remove();
+
+  if (!articles || articles.length === 0) return;
+
+  // Pick top 10 latest headlines for the ticker
+  const headlines = articles.slice(0, 10);
+
+  const ticker = document.createElement('div');
+  ticker.id = 'newsTicker';
+  ticker.className = 'news-ticker';
+
+  const items = headlines.map(a =>
+    `<span class="ticker-item"><span class="ticker-dot"></span><a href="${escapeHtml(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a></span>`
+  ).join('');
+
+  // Duplicate items for seamless infinite scroll
+  ticker.innerHTML = `
+    <div class="ticker-track">
+      <span class="ticker-label"><span class="ticker-label-dot"></span>LATEST</span>
+      ${items}
+      <span class="ticker-label"><span class="ticker-label-dot"></span>LATEST</span>
+      ${items}
+    </div>
+  `;
+
+  // Insert after header
+  const header = document.querySelector('header');
+  header.after(ticker);
+}
+
+// ===== Scroll Reveal =====
+function setupScrollReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        // Stagger the animation slightly
+        const delay = i * 60;
+        setTimeout(() => entry.target.classList.add('visible'), delay);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
 }
 
 // ===== Utilities =====
