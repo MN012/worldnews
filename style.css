@@ -97,8 +97,8 @@ header {
 }
 
 .globe-icon {
-  color: var(--accent);
-  animation: spin 20s linear infinite;
+  font-size: 2rem;
+  line-height: 1;
 }
 
 @keyframes spin {
@@ -249,7 +249,7 @@ header {
 }
 
 .continent-btn .emoji {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
 }
 
 .continent-btn .btn-shortcut {
