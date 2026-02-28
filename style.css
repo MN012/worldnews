@@ -367,9 +367,8 @@ header {
 /* ===== Country Filter Bar ===== */
 .filter-bar {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-bar::-webkit-scrollbar { display: none; }
@@ -380,8 +379,6 @@ header {
   gap: 12px;
   overflow-x: auto;
   scrollbar-width: none;
-  flex: 1;
-  min-width: 0;
 }
 
 .filter-left::-webkit-scrollbar { display: none; }
@@ -1599,11 +1596,6 @@ footer {
   /* Filters */
   .filters-container {
     padding: 0 16px 16px;
-  }
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
   }
   .filter-left {
     overflow-x: auto;
