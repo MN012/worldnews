@@ -1486,23 +1486,47 @@ footer {
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .header-inner {
-    padding: 12px 16px;
+    padding: 10px 16px;
+    gap: 12px;
   }
 
-  .brand h1 {
-    font-size: 1.2rem;
-  }
-
-  .header-actions {
+  .brand {
     gap: 8px;
   }
 
+  .globe-icon {
+    font-size: 1.5rem;
+  }
+
+  .brand h1 {
+    font-size: 1.1rem;
+  }
+
+  .live-indicator {
+    margin-left: 8px;
+    padding: 3px 8px;
+  }
+
+  .live-text {
+    font-size: 0.7rem;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
   .continent-nav {
-    padding: 12px 16px;
+    padding: 10px 16px;
+    justify-content: flex-start;
   }
 
   .continent-btn {
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 0.8rem;
   }
 
@@ -1510,31 +1534,49 @@ footer {
     display: none;
   }
 
+  .filters-container {
+    padding: 0 16px 16px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .filter-left {
+    flex-wrap: wrap;
+  }
+
+  .summarize-btn {
+    font-size: 0.75rem;
+    padding: 7px 14px;
+  }
+
   .news-container {
     padding: 8px 16px 40px;
   }
 
   .news-grid,
-  .skeleton-grid,
-  .live-streams-grid {
+  .skeleton-grid {
     grid-template-columns: 1fr;
+  }
+
+  .live-streams-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .live-streams-section {
     padding: 0 16px;
   }
 
-  .source-badge-bar,
-  .search-bar,
-  .trending-bar,
-  .filter-bar,
-  .toolbar {
-    padding-left: 16px;
-    padding-right: 16px;
+  .live-streams-title {
+    font-size: 1rem;
   }
 
   .search-input-wrap {
     max-width: 100%;
+    padding: 10px 16px;
   }
 
   .keyboard-hint,
@@ -1550,16 +1592,51 @@ footer {
     bottom: 20px;
     right: 20px;
   }
+
+  .summary-panel {
+    max-height: 90vh;
+  }
 }
 
 @media (max-width: 480px) {
-  .live-indicator .last-updated {
+  .header-inner {
+    gap: 8px;
+  }
+
+  .live-indicator {
     display: none;
   }
 
-  .toolbar {
-    flex-direction: column;
-    align-items: flex-start;
+  .search-input-wrap {
+    padding: 8px 14px;
     gap: 8px;
+  }
+
+  .continent-btn {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+    gap: 6px;
+  }
+
+  .continent-btn .emoji {
+    font-size: 1rem;
+  }
+
+  .live-streams-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-badge-bar {
+    gap: 6px;
+  }
+
+  .source-badge {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  .country-chip {
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
 }
