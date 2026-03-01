@@ -182,7 +182,7 @@ async function fetchFeed(source) {
       const link = item.querySelector('link')?.textContent || '#';
       const pubDate = item.querySelector('pubDate')?.textContent || new Date().toISOString();
       const description = item.querySelector('description')?.textContent || '';
-      const snippet = description.replace(/<[^>]*>/g, '').substring(0, 200);
+      const snippet = description.replace(/<[^>]*>/g, '').substring(0, 400);
 
       // Extract media: try multiple RSS media patterns
       const enclosure = item.querySelector('enclosure');
@@ -355,14 +355,35 @@ function extractKeywords(articles) {
   return Object.entries(freq)
     .filter(([, count]) => count >= 2)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
+    .slice(0, 12)
     .map(([word]) => word);
+}
+
+// Truncate text at the last complete sentence that fits within maxLen
+function truncateAtSentence(text, maxLen) {
+  if (!text || text.length <= maxLen) return text;
+  const trimmed = text.substring(0, maxLen);
+  // Try to find the last sentence-ending punctuation
+  const lastPeriod = trimmed.lastIndexOf('. ');
+  const lastExcl = trimmed.lastIndexOf('! ');
+  const lastQ = trimmed.lastIndexOf('? ');
+  const lastBreak = Math.max(lastPeriod, lastExcl, lastQ);
+  if (lastBreak > maxLen * 0.3) {
+    return trimmed.substring(0, lastBreak + 1);
+  }
+  // Fallback: break at last space to avoid cutting a word
+  const lastSpace = trimmed.lastIndexOf(' ');
+  if (lastSpace > maxLen * 0.5) {
+    return trimmed.substring(0, lastSpace) + '...';
+  }
+  return trimmed + '...';
 }
 
 function groupByTheme(articles, keywords) {
   const themes = {};
   const used = new Set();
 
+  // Build two-word phrases from adjacent keyword pairs for better labels
   for (const keyword of keywords) {
     const matching = articles.filter((a, i) => {
       if (used.has(i)) return false;
@@ -370,20 +391,38 @@ function groupByTheme(articles, keywords) {
       return text.includes(keyword);
     });
     if (matching.length >= 2) {
-      const label = keyword.charAt(0).toUpperCase() + keyword.slice(1);
-      themes[label] = matching.slice(0, 4);
-      matching.slice(0, 4).forEach(m => {
+      // Try to create a descriptive label from the most common title words in this group
+      const label = buildThemeLabel(matching, keyword);
+      themes[label] = matching.slice(0, 5);
+      matching.slice(0, 5).forEach(m => {
         used.add(articles.indexOf(m));
       });
     }
   }
 
-  const remaining = articles.filter((_, i) => !used.has(i)).slice(0, 5);
+  const remaining = articles.filter((_, i) => !used.has(i)).slice(0, 6);
   if (remaining.length > 0) {
-    themes['Other Headlines'] = remaining;
+    themes['Other Notable Stories'] = remaining;
   }
 
   return themes;
+}
+
+// Create a descriptive theme label from a group of related articles
+function buildThemeLabel(articles, keyword) {
+  // Collect all title words from the group, excluding stop words
+  const wordFreq = {};
+  for (const a of articles) {
+    const words = a.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 2 && !SUMMARY_STOP_WORDS.has(w));
+    for (const w of words) {
+      wordFreq[w] = (wordFreq[w] || 0) + 1;
+    }
+  }
+  // Get the top 2 most common words (including the keyword)
+  const sorted = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]);
+  const topWords = sorted.slice(0, 2).map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+  if (topWords.length >= 2) return topWords.join(' & ');
+  return keyword.charAt(0).toUpperCase() + keyword.slice(1);
 }
 
 function buildSummary(articles, continentName) {
@@ -394,20 +433,37 @@ function buildSummary(articles, continentName) {
   const keywords = extractKeywords(articles);
   const themes = groupByTheme(articles, keywords);
   const sourceSet = [...new Set(articles.map(a => a.source))];
+  const totalArticles = articles.length;
 
-  let md = `## Today's Briefing: ${continentName}\n\n`;
+  let md = `## Today's News Briefing: ${continentName}\n\n`;
 
+  // Overview paragraph
+  const topStories = articles.slice(0, 3).map(a => `"${a.title}"`).join(', ');
+  md += `Today's coverage from **${continentName}** includes **${totalArticles} articles** from ${sourceSet.length} sources. `;
+  md += `Top stories include ${topStories}.\n\n`;
+
+  // Themed sections with full descriptions
   for (const [theme, items] of Object.entries(themes)) {
-    md += `**${theme}**\n`;
+    md += `### ${theme}\n\n`;
     for (const item of items) {
-      const snippet = item.snippet ? ` — ${item.snippet.substring(0, 120)}` : '';
-      md += `- ${item.title}${snippet} *(${item.source})*\n`;
+      const snippet = item.snippet ? truncateAtSentence(item.snippet, 250) : '';
+      if (snippet) {
+        md += `- **${item.title}** — ${snippet} *(${item.source})*\n`;
+      } else {
+        md += `- **${item.title}** *(${item.source})*\n`;
+      }
     }
     md += '\n';
   }
 
-  md += `**Key Topics:** ${keywords.slice(0, 6).join(', ')}\n\n`;
-  md += `*Based on ${articles.length} articles from ${sourceSet.join(', ')}.*`;
+  // Key topics
+  md += `### Key Topics\n\n`;
+  md += keywords.slice(0, 8).map(k => `\`${k}\``).join('  ') + '\n\n';
+
+  // Source attribution
+  md += `---\n\n`;
+  md += `*This briefing was generated from ${totalArticles} articles sourced from ${sourceSet.join(', ')}. `;
+  md += `Last updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.*`;
 
   return md;
 }
@@ -804,9 +860,33 @@ function renderCard(article) {
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
 
+  // Build image section
+  let mediaHtml = '';
+  if (article.image) {
+    mediaHtml = `
+      <div class="card-media">
+        <img src="${escapeHtml(article.image)}" alt="" loading="lazy"
+             onerror="this.parentElement.innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
+        ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
+      </div>`;
+  } else {
+    mediaHtml = `
+      <div class="card-media no-image">
+        <div class="card-media-fallback">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+        ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
+      </div>`;
+  }
+
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
        class="news-card reveal-card">
+      ${mediaHtml}
       <div class="card-body">
         <div class="card-source-header">
           <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
@@ -1111,8 +1191,10 @@ function closeSummary(event) {
 // ===== Markdown Renderer =====
 function renderMarkdown(text) {
   return text
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^---$/gm, '<hr>')
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
     .replace(/^# (.+)$/gm, '<h2>$1</h2>')
@@ -1126,7 +1208,8 @@ function renderMarkdown(text) {
     .replace(/<p>(<h[234]>)/g, '$1')
     .replace(/(<\/h[234]>)<\/p>/g, '$1')
     .replace(/<p>(<ul>)/g, '$1')
-    .replace(/(<\/ul>)<\/p>/g, '$1');
+    .replace(/(<\/ul>)<\/p>/g, '$1')
+    .replace(/<p>(<hr>)<\/p>/g, '$1');
 }
 
 // ===== News Ticker =====
