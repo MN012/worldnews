@@ -851,6 +851,27 @@ function renderArticles(articles) {
   setupScrollReveal();
 }
 
+// Detect topic category from article text (matching Stitch design)
+const TOPIC_CATEGORIES = [
+  { label: 'Politics', keywords: ['election', 'president', 'minister', 'parliament', 'government', 'senate', 'congress', 'vote', 'political', 'diplomat', 'treaty', 'sanction'] },
+  { label: 'Economy', keywords: ['market', 'economy', 'inflation', 'stock', 'trade', 'gdp', 'recession', 'bank', 'finance', 'fiscal', 'debt', 'currency', 'tariff'] },
+  { label: 'Tech', keywords: ['technology', 'ai', 'artificial intelligence', 'software', 'cyber', 'digital', 'startup', 'robot', 'quantum', 'blockchain', 'app'] },
+  { label: 'Conflict', keywords: ['war', 'military', 'attack', 'bomb', 'soldier', 'troops', 'invasion', 'missile', 'ceasefire', 'combat', 'weapon', 'airstrike'] },
+  { label: 'Climate', keywords: ['climate', 'carbon', 'emission', 'warming', 'renewable', 'environment', 'pollution', 'wildfire', 'flood', 'drought', 'hurricane', 'earthquake'] },
+  { label: 'Health', keywords: ['health', 'vaccine', 'disease', 'hospital', 'pandemic', 'virus', 'medical', 'drug', 'cancer', 'outbreak', 'who'] },
+  { label: 'Science', keywords: ['science', 'space', 'nasa', 'research', 'discovery', 'study', 'asteroid', 'planet', 'ocean', 'species', 'genome'] },
+  { label: 'Sports', keywords: ['football', 'soccer', 'olympic', 'champion', 'tournament', 'match', 'league', 'athlete', 'medal', 'cricket', 'tennis'] },
+  { label: 'Culture', keywords: ['culture', 'film', 'music', 'art', 'festival', 'museum', 'award', 'book', 'theater', 'heritage'] },
+];
+
+function detectTopic(title, snippet) {
+  const text = `${title} ${snippet}`.toLowerCase();
+  for (const cat of TOPIC_CATEGORIES) {
+    if (cat.keywords.some(kw => text.includes(kw))) return cat.label;
+  }
+  return 'World';
+}
+
 function renderCard(article) {
   const logoClass = article.sourceLogo?.toLowerCase() || '';
   const timeAgo = getTimeAgo(new Date(article.pubDate));
@@ -859,6 +880,7 @@ function renderCard(article) {
   const saved = isBookmarked(article.link);
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
+  const topic = detectTopic(article.title, article.snippet || '');
 
   // Build image section
   let mediaHtml = '';
@@ -867,6 +889,7 @@ function renderCard(article) {
       <div class="card-media">
         <img src="${escapeHtml(article.image)}" alt="" loading="lazy"
              onerror="this.parentElement.innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
+        <span class="card-topic-badge">${topic}</span>
         ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
       </div>`;
   } else {
@@ -891,6 +914,7 @@ function renderCard(article) {
         <div class="card-source-header">
           <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
           <span class="source-name">${escapeHtml(article.source)}</span>
+          ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
         </div>
         <h3 class="card-title">${escapeHtml(article.title)}</h3>
         ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
