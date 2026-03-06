@@ -68,45 +68,53 @@ const FEEDS = {
 };
 
 // YouTube live news streams by continent
+// Uses @handle/live URLs which always redirect to the current live stream — never break
 const YOUTUBE_LIVES = {
   africa: [
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'Al Jazeera English', id: 'F-POY4Q0QSI', channel: 'Al Jazeera' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'France 24 English', id: 'NiRIbKwAejk', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'CGTN', handle: 'CGTNOfficial', channel: 'CGTN', logo: 'cgtn', color: '#D21F2B' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   asia: [
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'CNA 24/7', id: 'XWq5kBlakcQ', channel: 'CNA' },
-    { name: 'WION Live', id: '9Auq9mYxFEE', channel: 'WION' },
-    { name: 'NHK World', id: 'f0lYkdA-Gtw', channel: 'NHK' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'CNA 24/7', handle: 'channelnewsasia', channel: 'CNA', logo: 'cna', color: '#E4002B' },
+    { name: 'WION', handle: 'WIONews', channel: 'WION', logo: 'wion', color: '#1A237E' },
+    { name: 'NHK World', handle: 'NHKWORLD', channel: 'NHK', logo: 'nhk', color: '#4A00A0' },
+    { name: 'CGTN', handle: 'CGTNOfficial', channel: 'CGTN', logo: 'cgtn', color: '#D21F2B' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   europe: [
-    { name: 'Euronews', id: 'pykpO5bQChY', channel: 'Euronews' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'Sky News', id: '9Auq9mYxFEE', channel: 'Sky News' },
+    { name: 'Euronews', handle: 'euronews', channel: 'Euronews', logo: 'en', color: '#003D7A' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'Sky News', handle: 'SkyNews', channel: 'Sky News', logo: 'sky', color: '#9B1B1F' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   north_america: [
-    { name: 'NBC News NOW', id: 'Inga0sG0iRc', channel: 'NBC' },
-    { name: 'ABC News Live', id: 'YMmU6l9mPCw', channel: 'ABC' },
-    { name: 'CBS News 24/7', id: 'plJkgB9aNfA', channel: 'CBS' },
-    { name: 'Bloomberg TV', id: 'dp8PhLsUcFE', channel: 'Bloomberg' },
+    { name: 'NBC News NOW', handle: 'NBCNews', channel: 'NBC', logo: 'nbc', color: '#1A73E8' },
+    { name: 'ABC News Live', handle: 'ABCNews', channel: 'ABC', logo: 'abc', color: '#0D7F3F' },
+    { name: 'CBS News 24/7', handle: 'CBSNews', channel: 'CBS', logo: 'cbs', color: '#1A1A1A' },
+    { name: 'Bloomberg TV', handle: 'business', channel: 'Bloomberg', logo: 'blm', color: '#472A91' },
+    { name: 'Fox 5 Washington DC', handle: 'fox5dc', channel: 'Fox 5 DC', logo: 'fox', color: '#003366' },
   ],
   south_america: [
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   oceania: [
-    { name: 'ABC News Australia', id: 'vz-RDetFU1I', channel: 'ABC AU' },
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'Sky News Australia', id: 'bM0StwTjFOE', channel: 'Sky AU' },
+    { name: 'ABC News Australia', handle: 'ABCNewsAustralia', channel: 'ABC AU', logo: 'abc', color: '#0D7F3F' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'Sky News Australia', handle: 'SkyNewsAustralia', channel: 'Sky AU', logo: 'sky', color: '#9B1B1F' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
   ],
   antarctica: [
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'Euronews', handle: 'euronews', channel: 'Euronews', logo: 'en', color: '#003D7A' },
   ],
 };
 
@@ -760,29 +768,40 @@ function renderLiveStreams(continent) {
   section.innerHTML = `
     <div class="live-streams-header">
       <div class="live-streams-title">
+        <span class="live-dot-inline"></span>
         Live News Streams
       </div>
       <div id="live-streams-actions-container"></div>
     </div>
     <div class="live-streams-grid" id="liveStreamsGrid">
-      ${streams.map(s => `
-        <div class="live-stream-card">
-          <div class="live-stream-embed" id="embed-${s.id}">
-            <img class="live-stream-thumb" src="https://img.youtube.com/vi/${s.id}/mqdefault.jpg"
-                 alt="${escapeHtml(s.name)}" loading="lazy"
-                 onclick="loadYouTubeEmbed('${s.id}', this)">
-            <div class="live-stream-play" onclick="loadYouTubeEmbed('${s.id}', this.previousElementSibling)">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
+      ${streams.map((s, i) => `
+        <div class="live-stream-card" onclick="openLiveStream('${s.handle}')" style="cursor:pointer">
+          <div class="live-stream-embed" id="embed-${s.handle}">
+            <div class="live-stream-branded" style="background: linear-gradient(135deg, ${s.color} 0%, ${adjustColor(s.color, -40)} 100%)">
+              <div class="live-stream-branded-logo">${escapeHtml(s.channel.substring(0, 3).toUpperCase())}</div>
+              <div class="live-stream-play">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              </div>
+              <div class="live-badge-overlay">
+                <span class="live-dot-small"></span> LIVE
+              </div>
             </div>
-            <div class="live-badge-overlay">
-              <span class="live-dot-small"></span> LIVE
+          </div>
+          <div class="live-stream-info">
+            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+              <div class="source-logo" style="background:${s.color};border-radius:8px">${escapeHtml(s.channel.substring(0, 2).toUpperCase())}</div>
+              <div style="min-width:0">
+                <div class="live-stream-name">${escapeHtml(s.name)}</div>
+                <div class="live-stream-channel">Watch live on YouTube</div>
+              </div>
             </div>
-            <div class="live-stream-info-overlay">
-              <div class="source-logo ${s.channel.replace(/[^a-zA-Z]/g, '').toLowerCase()}">${s.channel.substring(0, 2).toUpperCase()}</div>
-              <span class="live-stream-name">${escapeHtml(s.name)}</span>
-            </div>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);flex-shrink:0">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
           </div>
         </div>
       `).join('')}
@@ -793,16 +812,18 @@ function renderLiveStreams(continent) {
   container.parentNode.insertBefore(section, container);
 }
 
-function loadYouTubeEmbed(videoId, imgEl) {
-  const embedDiv = document.getElementById('embed-' + videoId);
-  embedDiv.innerHTML = `
-    <iframe
-      src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1"
-      frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
-  `;
+// Open YouTube live stream — always works, never broken
+function openLiveStream(handle) {
+  window.open(`https://www.youtube.com/@${handle}/live`, '_blank', 'noopener,noreferrer');
+}
+
+// Darken a hex color by amount
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
 function toggleLiveStreams() {

@@ -1402,12 +1402,38 @@ main {
   aspect-ratio: 16/9;
   background: #000;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .live-stream-embed iframe {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* Branded gradient card (replaces broken video thumbnails) */
+.live-stream-branded {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: filter var(--transition);
+}
+
+.live-stream-card:hover .live-stream-branded {
+  filter: brightness(1.1);
+}
+
+.live-stream-branded-logo {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.15);
+  letter-spacing: 2px;
+  position: absolute;
+  user-select: none;
 }
 
 .live-stream-thumb {
@@ -1426,22 +1452,25 @@ main {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 52px;
-  height: 52px;
-  background: rgba(var(--accent-rgb), 0.9);
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.4);
+  z-index: 2;
 }
 
-.live-stream-play:hover {
-  background: var(--accent);
+.live-stream-card:hover .live-stream-play {
+  background: rgba(255, 255, 255, 0.35);
   transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 8px 28px rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .live-stream-play svg {
@@ -1498,10 +1527,11 @@ main {
 }
 
 .live-stream-info {
-  padding: 10px 14px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .live-stream-name {
