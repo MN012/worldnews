@@ -12,7 +12,7 @@
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-worldnews-E22222?style=flat-square&logo=vercel&logoColor=white)]([https://github.com/MN012/worldnews](https://mn012.github.io/worldnews/))
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-worldnews-E22222?style=flat-square&logo=vercel&logoColor=white)](https://mn012.github.io/worldnews/)
 [![GitHub Stars](https://img.shields.io/github/stars/MN012/worldnews?style=flat-square&color=E22222&logo=github)](https://github.com/MN012/worldnews)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A516-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
