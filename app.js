@@ -140,6 +140,7 @@ let refreshTimer = null;
 let refreshBarEl = null;
 let refreshStart = 0;
 let bookmarks = [];
+let readArticles = new Set();
 
 // In-memory cache
 const cache = {};
@@ -149,10 +150,12 @@ const CACHE_DURATION = 2 * 60 * 1000;
 document.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
   loadBookmarks();
+  loadReadArticles();
   createRefreshBar();
   setupScrollToTop();
   loadContinents();
   setupKeyboardShortcuts();
+  registerServiceWorker();
 });
 
 // ===== RSS Fetching (client-side) =====
@@ -274,6 +277,22 @@ async function getNewsForContinent(continent) {
     return cache[continent].data;
   }
 
+  // Try the Express backend first — server-side caching, no CORS proxies needed
+  try {
+    const res = await fetch(`/api/news/${encodeURIComponent(continent)}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const articles = data.articles || [];
+      cache[continent] = { data: articles, timestamp: now };
+      return articles;
+    }
+  } catch {
+    // Server unavailable — fall through to direct CORS proxy fetch
+  }
+
+  // CORS proxy fallback (local dev without server, or server down)
   const sources = FEEDS[continent];
   if (!sources) return [];
 
@@ -543,12 +562,11 @@ function toggleBookmark(link, title, source, event) {
 
 function toggleBookmarks() {
   const panel = document.getElementById('bookmarksPanel');
-  if (panel.style.display === 'none') {
-    panel.style.display = 'block';
-    renderBookmarksList();
-  } else {
-    panel.style.display = 'none';
-  }
+  const btn = document.getElementById('bookmarksToggle');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) renderBookmarksList();
 }
 
 function renderBookmarksList() {
@@ -564,6 +582,33 @@ function renderBookmarksList() {
       <button class="bookmark-item-remove" onclick="toggleBookmark('${escapeHtml(b.link)}', '', '', event)" title="Remove">&times;</button>
     </div>
   `).join('');
+}
+
+// ===== Read Tracking =====
+function loadReadArticles() {
+  try {
+    readArticles = new Set(JSON.parse(localStorage.getItem('wn-read') || '[]'));
+  } catch {
+    readArticles = new Set();
+  }
+}
+
+function markAsRead(link) {
+  if (readArticles.has(link)) return;
+  readArticles.add(link);
+  // Cap at 1000 entries to avoid unbounded storage growth
+  if (readArticles.size > 1000) {
+    const arr = [...readArticles];
+    readArticles = new Set(arr.slice(-1000));
+  }
+  localStorage.setItem('wn-read', JSON.stringify([...readArticles]));
+  // Update the card visually without re-rendering the grid
+  const card = document.querySelector(`.news-card[data-link="${CSS.escape(link)}"]`);
+  if (card) card.classList.add('news-card--read');
+}
+
+function isRead(link) {
+  return readArticles.has(link);
 }
 
 // ===== Toast =====
@@ -678,7 +723,9 @@ function renderContinentNav(continents) {
     const btn = document.createElement('button');
     btn.className = 'continent-btn';
     btn.dataset.continent = c.id;
-    btn.innerHTML = `<span class="emoji">${CONTINENT_EMOJIS[c.id] || '🌐'}</span> ${c.name} <span class="btn-shortcut">${i + 1}</span>`;
+    btn.setAttribute('aria-label', `${c.name} — ${c.sourceCount} source${c.sourceCount !== 1 ? 's' : ''}`);
+    btn.setAttribute('aria-current', 'false');
+    btn.innerHTML = `<span class="emoji" aria-hidden="true">${CONTINENT_EMOJIS[c.id] || '🌐'}</span> ${c.name} <span class="btn-shortcut" aria-hidden="true">${i + 1}</span>`;
     btn.addEventListener('click', () => selectContinent(c.id));
     nav.appendChild(btn);
   });
@@ -686,7 +733,9 @@ function renderContinentNav(continents) {
 
 async function selectContinent(continent) {
   document.querySelectorAll('.continent-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.continent === continent);
+    const isActive = btn.dataset.continent === continent;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
 
   currentContinent = continent;
@@ -841,7 +890,8 @@ function toggleLiveStreams() {
 // ===== Skeleton Loading =====
 function buildSkeletonHTML() {
   const cards = Array.from({ length: 6 }, () => `
-    <div class="skeleton-card">
+    <div class="skeleton-card" aria-hidden="true">
+      <div class="skeleton-image"></div>
       <div class="skeleton-body">
         <div class="skeleton-line header"></div>
         <div class="skeleton-line title long"></div>
@@ -851,7 +901,7 @@ function buildSkeletonHTML() {
       </div>
     </div>
   `).join('');
-  return `<div class="skeleton-grid">${cards}</div>`;
+  return `<div class="skeleton-grid" role="status" aria-label="Loading articles">${cards}</div>`;
 }
 
 // ===== Render Articles =====
@@ -899,17 +949,21 @@ function renderCard(article) {
   const isBreaking = isBreakingNews(new Date(article.pubDate));
   const isVideo = article.mediaType === 'video';
   const saved = isBookmarked(article.link);
+  const read = isRead(article.link);
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
+  const escapedSource = escapeHtml(article.source).replace(/'/g, "\\'");
   const topic = detectTopic(article.title, article.snippet || '');
 
-  // Build image section
+  // Build image section — blur-up: shimmer placeholder fades out once image loads
   let mediaHtml = '';
   if (article.image) {
     mediaHtml = `
-      <div class="card-media">
+      <div class="card-media card-img-wrap">
         <img src="${escapeHtml(article.image)}" alt="" loading="lazy"
-             onerror="this.parentElement.innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
+             class="card-img-main"
+             onload="this.classList.add('loaded')"
+             onerror="this.closest('.card-img-wrap').innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
         <span class="card-topic-badge">${topic}</span>
         ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
       </div>`;
@@ -917,7 +971,7 @@ function renderCard(article) {
     mediaHtml = `
       <div class="card-media no-image">
         <div class="card-media-fallback">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <path d="M21 15l-5-5L5 21"/>
@@ -929,23 +983,48 @@ function renderCard(article) {
 
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card reveal-card">
+       class="news-card reveal-card${read ? ' news-card--read' : ''}"
+       data-link="${escapedLink}"
+       onclick="markAsRead('${escapedLink}')">
       ${mediaHtml}
       <div class="card-body">
         <div class="card-source-header">
           <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
           <span class="source-name">${escapeHtml(article.source)}</span>
           ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
+          ${read ? '<span class="badge-read" aria-label="Already read">Read</span>' : ''}
         </div>
         <h3 class="card-title">${escapeHtml(article.title)}</h3>
         ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
         <div class="card-footer-new">
           <span class="card-time">${timeAgo}</span>
-          <div class="card-verified-new">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
-              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
-            </svg>
-            Verified source
+          <div class="card-footer-right">
+            <div class="card-actions" role="group" aria-label="Article actions">
+              <button class="card-action-btn${saved ? ' bookmarked' : ''}"
+                      onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapedSource}', event)"
+                      title="${saved ? 'Remove bookmark' : 'Save article'}"
+                      aria-label="${saved ? 'Remove from saved articles' : 'Save article'}"
+                      aria-pressed="${saved}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+              <button class="card-action-btn"
+                      onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)"
+                      title="Share article"
+                      aria-label="Share article">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </button>
+            </div>
+            <div class="card-verified-new">
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
+                <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
+              </svg>
+              Verified source
+            </div>
           </div>
         </div>
       </div>
@@ -1305,6 +1384,15 @@ function setupScrollReveal() {
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
   document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
+}
+
+// ===== PWA Service Worker =====
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('Service worker registration failed:', err.message);
+    });
+  }
 }
 
 // ===== Utilities =====

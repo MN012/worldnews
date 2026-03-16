@@ -1,0 +1,31 @@
+{
+  "name": "WorldNews",
+  "short_name": "WorldNews",
+  "description": "Real-time world news by continent from verified sources",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "categories": ["news"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%23050505'/><circle cx='96' cy='96' r='60' fill='none' stroke='%23E22222' stroke-width='6'/><line x1='36' y1='96' x2='156' y2='96' stroke='%23E22222' stroke-width='6'/><path d='M96 36 Q120 66 120 96 Q120 126 96 156 Q72 126 72 96 Q72 66 96 36Z' fill='none' stroke='%23E22222' stroke-width='6'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='64' fill='%23050505'/><circle cx='256' cy='256' r='160' fill='none' stroke='%23E22222' stroke-width='16'/><line x1='96' y1='256' x2='416' y2='256' stroke='%23E22222' stroke-width='16'/><path d='M256 96 Q320 176 320 256 Q320 336 256 416 Q192 336 192 256 Q192 176 256 96Z' fill='none' stroke='%23E22222' stroke-width='16'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    { "name": "Europe", "url": "/?continent=europe", "description": "European news" },
+    { "name": "Asia",   "url": "/?continent=asia",   "description": "Asian news" },
+    { "name": "Americas", "url": "/?continent=north_america", "description": "Americas news" }
+  ]
+}

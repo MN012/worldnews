@@ -108,6 +108,57 @@ body::before {
   z-index: 0;
 }
 
+/* ===== Skip Link (Accessibility) ===== */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 12px 20px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0 0 12px 12px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+  box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.4);
+}
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ===== Focus Visible — keyboard-only focus rings ===== */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+/* Remove browser default focus ring for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+/* Restore sensible defaults on buttons/inputs that already style focus */
+.icon-btn:focus-visible,
+.continent-btn:focus-visible,
+.country-chip:focus-visible,
+.summarize-btn:focus-visible,
+.card-action-btn:focus-visible,
+.scroll-top:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.news-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+.search-input-wrap:focus-within {
+  outline: none; /* handled by box-shadow already */
+}
+
 /* ===== Reduced Motion ===== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -2230,3 +2281,88 @@ footer {
     font-size: 1rem;
   }
 }
+
+/* ===== Blur-up Image Loading ===== */
+/* .card-img-wrap is added alongside .card-media when an image is present */
+.card-img-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer layer shown until image loads */
+.card-img-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--bg-card-hover) 37%,
+    var(--border) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* Hide shimmer once the image is marked loaded */
+.card-img-wrap:has(.card-img-main.loaded)::before {
+  opacity: 0;
+  animation-play-state: paused;
+}
+
+/* Image starts invisible, fades in */
+.card-img-main {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-img-main.loaded {
+  opacity: 1;
+}
+
+/* ===== Read State ===== */
+.news-card--read {
+  opacity: 0.65;
+}
+.news-card--read:hover,
+.news-card--read:focus-visible {
+  opacity: 1;
+}
+.news-card--read .card-title {
+  color: var(--text-muted);
+}
+
+.badge-read {
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  padding: 2px 8px;
+  border-radius: 100px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+
+/* ===== Card Footer with Actions ===== */
+/* Right side of footer: actions group + verified badge */
+.card-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* On hover/focus, card actions visible; always visible on touch */
+.news-card:hover .card-actions,
+.news-card:focus-within .card-actions {
+  opacity: 1;
+}
+
