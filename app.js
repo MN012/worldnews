@@ -954,6 +954,7 @@ function renderCard(article) {
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
   const escapedSource = escapeHtml(article.source).replace(/'/g, "\\'");
   const topic = detectTopic(article.title, article.snippet || '');
+  const topicClass = `topic-${topic.toLowerCase()}`;
 
   // Build image section — blur-up: shimmer placeholder fades out once image loads
   let mediaHtml = '';
@@ -964,14 +965,16 @@ function renderCard(article) {
              class="card-img-main"
              onload="this.classList.add('loaded')"
              onerror="this.closest('.card-img-wrap').innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
-        <span class="card-topic-badge">${topic}</span>
+        <span class="card-topic-badge ${topicClass}">${topic}</span>
         ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
       </div>`;
   } else {
+    const watermark = escapeHtml((article.sourceLogo || '').toUpperCase().slice(0, 4));
     mediaHtml = `
       <div class="card-media no-image">
+        <span class="card-media-source-watermark" aria-hidden="true">${watermark}</span>
         <div class="card-media-fallback">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <path d="M21 15l-5-5L5 21"/>
@@ -983,7 +986,7 @@ function renderCard(article) {
 
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card reveal-card${read ? ' news-card--read' : ''}"
+       class="news-card reveal-card${read ? ' news-card--read' : ''}${isBreaking ? ' news-card--breaking' : ''}"
        data-link="${escapedLink}"
        onclick="markAsRead('${escapedLink}')">
       ${mediaHtml}
