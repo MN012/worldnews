@@ -246,6 +246,15 @@ async function fetchFeed(source) {
         if (imgMatch) image = imgMatch[1];
       }
 
+      // Fallback: extract image from content:encoded (full HTML body)
+      if (!image) {
+        const contentEncoded = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
+        if (contentEncoded) {
+          const imgMatch = contentEncoded.textContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+          if (imgMatch) image = imgMatch[1];
+        }
+      }
+
       // Detect video from link URL patterns
       if (!video && link.match(/\/video\//i)) {
         mediaType = 'video';
@@ -920,6 +929,7 @@ function renderArticles(articles) {
   container.innerHTML = `<div class="news-grid">${articles.map(article => renderCard(article)).join('')
     }</div>`;
   setupScrollReveal();
+  setupOgImageFetcher();
 }
 
 // Detect topic category from article text (matching Stitch design)
@@ -934,6 +944,92 @@ const TOPIC_CATEGORIES = [
   { label: 'Sports', keywords: ['football', 'soccer', 'olympic', 'champion', 'tournament', 'match', 'league', 'athlete', 'medal', 'cricket', 'tennis'] },
   { label: 'Culture', keywords: ['culture', 'film', 'music', 'art', 'festival', 'museum', 'award', 'book', 'theater', 'heritage'] },
 ];
+
+// ===== OG Image Lazy Fetcher =====
+// Fetches the real article thumbnail (og:image) for cards that have no RSS image.
+// Uses the existing CORS proxy. Max 3 concurrent fetches to avoid rate-limiting.
+
+const _ogQueue = [];
+let _ogActive = 0;
+const OG_MAX_CONCURRENT = 3;
+
+function _processOgQueue() {
+  while (_ogActive < OG_MAX_CONCURRENT && _ogQueue.length > 0) {
+    const { url, resolve } = _ogQueue.shift();
+    _ogActive++;
+    _fetchOgImage(url)
+      .then(resolve)
+      .finally(() => { _ogActive--; _processOgQueue(); });
+  }
+}
+
+function _enqueueOgFetch(url) {
+  return new Promise(resolve => {
+    _ogQueue.push({ url, resolve });
+    _processOgQueue();
+  });
+}
+
+async function _fetchOgImage(articleUrl) {
+  try {
+    const html = await fetchWithProxy(articleUrl);
+    const patterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i,
+    ];
+    for (const pat of patterns) {
+      const match = html.match(pat);
+      if (match?.[1]) {
+        let imgUrl = match[1];
+        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+        if (!imgUrl.startsWith('data:') && imgUrl.length > 12) return imgUrl;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function setupOgImageFetcher() {
+  const cards = document.querySelectorAll('.news-card[data-link]');
+  if (!cards.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const card = entry.target;
+      observer.unobserve(card);
+
+      const placeholder = card.querySelector('.card-media.no-image');
+      if (!placeholder) return;
+
+      const link = card.dataset.link;
+      if (!link || link === '#') return;
+
+      _enqueueOgFetch(link).then(imgUrl => {
+        if (!imgUrl) return;
+        // Double-check placeholder is still in the DOM
+        if (!card.querySelector('.card-media.no-image')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-media card-img-wrap';
+        wrapper.innerHTML = `<img src="${escapeHtml(imgUrl)}" alt="" loading="lazy"
+             class="card-img-main"
+             onload="this.classList.add('loaded')"
+             onerror="this.parentElement.remove()">`;
+        placeholder.replaceWith(wrapper);
+      });
+    });
+  }, { rootMargin: '400px' });
+
+  cards.forEach(card => {
+    if (card.querySelector('.card-media.no-image')) {
+      observer.observe(card);
+    }
+  });
+}
 
 function detectTopic(title, snippet) {
   const text = `${title} ${snippet}`.toLowerCase();
