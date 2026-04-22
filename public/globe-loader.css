@@ -1,0 +1,239 @@
+/* ===== Globe Loader — monochrome, centered, with whirl ===== */
+
+.globe-loader {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  /* Monochrome ink color — respects theme */
+  --gl-ink: #1a1a1a;
+  --gl-fill: rgba(26, 26, 26, 0.92);
+  --gl-faint: rgba(26, 26, 26, 0.15);
+  --gl-whisper: rgba(26, 26, 26, 0.08);
+}
+
+[data-theme="dark"] .globe-loader {
+  --gl-ink: #ededed;
+  --gl-fill: rgba(237, 237, 237, 0.92);
+  --gl-faint: rgba(237, 237, 237, 0.18);
+  --gl-whisper: rgba(237, 237, 237, 0.08);
+}
+
+.globe-loader-svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Globe body — off-white interior */
+.gl-sphere {
+  fill: rgba(255, 255, 255, 0.02);
+  stroke: var(--gl-faint);
+  stroke-width: 0.8;
+}
+
+[data-theme="dark"] .gl-sphere {
+  fill: rgba(0, 0, 0, 0.35);
+}
+
+.gl-rim {
+  fill: none;
+  stroke: var(--gl-ink);
+  stroke-width: 1.4;
+  stroke-opacity: 0.85;
+}
+
+/* Graticule */
+.gl-graticule ellipse {
+  fill: none;
+  stroke: var(--gl-whisper);
+  stroke-width: 0.6;
+}
+
+/* Land */
+.gl-land {
+  fill: var(--gl-fill);
+  stroke: var(--gl-ink);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  shape-rendering: geometricPrecision;
+}
+
+/* Whirl — orbital rings rotate counter to globe */
+.gl-whirl {
+  transform-origin: 50% 50%;
+  animation: gl-whirl-rot 8s linear infinite reverse;
+}
+
+.gl-orbit {
+  fill: none;
+  stroke: var(--gl-ink);
+  stroke-width: 0.9;
+  stroke-dasharray: 3 6;
+  opacity: 0.55;
+  transform-origin: 50% 50%;
+}
+
+.gl-orbit-1 {
+  stroke-dasharray: 2 8;
+  opacity: 0.75;
+  animation: gl-dash-flow 4s linear infinite;
+}
+
+.gl-orbit-2 {
+  stroke-dasharray: 1 14;
+  opacity: 0.9;
+  animation: gl-dash-flow 6s linear infinite reverse;
+}
+
+.gl-orbit-3 {
+  stroke-dasharray: 0.5 22;
+  opacity: 0.35;
+  animation: gl-dash-flow 10s linear infinite;
+}
+
+/* Orbiting particles — tiny ink dots */
+.gl-particle {
+  fill: var(--gl-ink);
+  transform-origin: 50% 50%;
+}
+
+.gl-particle-a {
+  animation: gl-orbit-a 3.2s linear infinite;
+}
+
+.gl-particle-b {
+  animation: gl-orbit-b 4.6s linear infinite;
+  opacity: 0.55;
+}
+
+@keyframes gl-whirl-rot {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gl-dash-flow {
+  to { stroke-dashoffset: -120; }
+}
+
+@keyframes gl-orbit-a {
+  from { transform: rotate(0deg) translate(0,0); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes gl-orbit-b {
+  from { transform: rotate(200deg); }
+  to   { transform: rotate(560deg); }
+}
+
+/* Particle orbits — rotate around their own center */
+.gl-whirl .gl-particle-a {
+  animation: gl-spin-a 3.2s linear infinite;
+  transform-box: fill-box;
+  transform-origin: -96px 50%; /* pull origin to globe center */
+}
+
+.gl-whirl .gl-particle-b {
+  animation: gl-spin-b 4.6s linear infinite;
+  transform-box: fill-box;
+  transform-origin: 96px 50%;
+}
+
+@keyframes gl-spin-a {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes gl-spin-b {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+.globe-loader-caption {
+  margin-top: 18px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--gl-ink);
+  opacity: 0.6;
+  text-align: center;
+  animation: gl-caption-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes gl-caption-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+/* ===== Full-screen overlay (boot / transitions) ===== */
+.globe-overlay {
+  position: fixed;
+  inset: 0;
+  background: #F4F2ED; /* off-white */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .globe-overlay {
+  background: #0A0A0A;
+}
+
+.globe-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Boot brand + subtitle */
+.boot-brand {
+  margin-top: 22px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #1a1a1a;
+}
+[data-theme="dark"] .boot-brand { color: #ededed; }
+
+.boot-sub {
+  margin-top: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  color: #1a1a1a;
+  opacity: 0.5;
+  letter-spacing: 0.2px;
+}
+[data-theme="dark"] .boot-sub { color: #ededed; }
+
+/* ===== Inline loader for news container ===== */
+.globe-inline-loader {
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: #F4F2ED;
+  border-radius: var(--radius, 16px);
+  border: 1px solid var(--border, rgba(0,0,0,0.06));
+  margin: 8px 0;
+}
+
+[data-theme="dark"] .globe-inline-loader {
+  background: rgba(10, 10, 10, 0.6);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .gl-whirl,
+  .gl-orbit,
+  .gl-particle,
+  .globe-loader-caption {
+    animation: none !important;
+  }
+}

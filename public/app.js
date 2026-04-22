@@ -1,7 +1,13 @@
 // ===== Configuration =====
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+let currentProxyIndex = 0;
 
 const CONTINENT_EMOJIS = {
+  breaking: '🔴',
   africa: '🌍',
   asia: '🌏',
   europe: '🌍',
@@ -11,7 +17,7 @@ const CONTINENT_EMOJIS = {
   antarctica: '🧊',
 };
 
-const CONTINENT_ORDER = ['africa', 'asia', 'europe', 'north_america', 'south_america', 'oceania', 'antarctica'];
+const CONTINENT_ORDER = ['africa', 'asia', 'europe', 'north_america', 'south_america', 'oceania'];
 
 const FEEDS = {
   africa: [
@@ -45,15 +51,15 @@ const FEEDS = {
   ],
   south_america: [
     { name: 'BBC Latin America', url: 'https://feeds.bbci.co.uk/news/world/latin_america/rss.xml', logo: 'BBC' },
-    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
     { name: 'France24 Americas', url: 'https://www.france24.com/en/americas/rss', logo: 'F24' },
-    { name: 'DW News', url: 'https://rss.dw.com/xml/rss-en-world', logo: 'DW' },
+    { name: 'DW Latin America', url: 'https://rss.dw.com/xml/rss-en-lat', logo: 'DW' },
+    { name: 'teleSUR English', url: 'https://www.telesurenglish.net/rss/news/3.xml', logo: 'TSR' },
   ],
   oceania: [
-    { name: 'BBC Asia-Pacific', url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', logo: 'BBC' },
     { name: 'ABC Australia', url: 'https://www.abc.net.au/news/feed/2942460/rss.xml', logo: 'ABC' },
-    { name: 'France24 Asia-Pacific', url: 'https://www.france24.com/en/asia-pacific/rss', logo: 'F24' },
-    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'RNZ Pacific', url: 'https://www.rnz.co.nz/rss/pacific.xml', logo: 'RNZ' },
+    { name: 'Guardian Australia', url: 'https://www.theguardian.com/australia-news/rss', logo: 'GUA' },
+    { name: 'ABC Pacific', url: 'https://www.abc.net.au/news/feed/51120/rss.xml', logo: 'ABC' },
   ],
   antarctica: [
     { name: 'BBC Science', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', logo: 'BBC' },
@@ -63,68 +69,130 @@ const FEEDS = {
 };
 
 // YouTube live news streams by continent
+// Uses @handle/live URLs which always redirect to the current live stream — never break
 const YOUTUBE_LIVES = {
   africa: [
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'CGTN', handle: 'CGTNOfficial', channel: 'CGTN', logo: 'cgtn', color: '#D21F2B' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   asia: [
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'CNA 24/7', id: 'XWq5kBlakcQ', channel: 'CNA' },
-    { name: 'WION Live', id: '9Auq9mYxFEE', channel: 'WION' },
-    { name: 'NHK World', id: 'f0lYkdA-Gtw', channel: 'NHK' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'CNA 24/7', handle: 'channelnewsasia', channel: 'CNA', logo: 'cna', color: '#E4002B' },
+    { name: 'WION', handle: 'WIONews', channel: 'WION', logo: 'wion', color: '#1A237E' },
+    { name: 'NHK World', handle: 'NHKWORLD', channel: 'NHK', logo: 'nhk', color: '#4A00A0' },
+    { name: 'CGTN', handle: 'CGTNOfficial', channel: 'CGTN', logo: 'cgtn', color: '#D21F2B' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   europe: [
-    { name: 'Euronews', id: 'pykpO5bQChY', channel: 'Euronews' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'Sky News', id: '9Auq9mYxFEE', channel: 'Sky News' },
+    { name: 'Euronews', handle: 'euronews', channel: 'Euronews', logo: 'en', color: '#003D7A' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'Sky News', handle: 'SkyNews', channel: 'Sky News', logo: 'sky', color: '#9B1B1F' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   north_america: [
-    { name: 'NBC News NOW', id: 'Inga0sG0iRc', channel: 'NBC' },
-    { name: 'ABC News Live', id: 'YMmU6l9mPCw', channel: 'ABC' },
-    { name: 'CBS News 24/7', id: 'plJkgB9aNfA', channel: 'CBS' },
-    { name: 'Bloomberg TV', id: 'dp8PhLsUcFE', channel: 'Bloomberg' },
+    { name: 'NBC News NOW', handle: 'NBCNews', channel: 'NBC', logo: 'nbc', color: '#1A73E8' },
+    { name: 'ABC News Live', handle: 'ABCNews', channel: 'ABC', logo: 'abc', color: '#0D7F3F' },
+    { name: 'CBS News 24/7', handle: 'CBSNews', channel: 'CBS', logo: 'cbs', color: '#1A1A1A' },
+    { name: 'Bloomberg TV', handle: 'business', channel: 'Bloomberg', logo: 'blm', color: '#472A91' },
+    { name: 'Fox 5 Washington DC', handle: 'fox5dc', channel: 'Fox 5 DC', logo: 'fox', color: '#003366' },
   ],
   south_america: [
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'TRT World', handle: 'taborworld', channel: 'TRT', logo: 'trt', color: '#1C3F94' },
   ],
   oceania: [
-    { name: 'ABC News Australia', id: 'vz-RDetFU1I', channel: 'ABC AU' },
-    { name: 'Al Jazeera English', id: 'gCNeDWCI0vo', channel: 'Al Jazeera' },
-    { name: 'Sky News Australia', id: 'bM0StwTjFOE', channel: 'Sky AU' },
+    { name: 'ABC News Australia', handle: 'ABCNewsAustralia', channel: 'ABC AU', logo: 'abc', color: '#0D7F3F' },
+    { name: 'Al Jazeera English', handle: 'aljaboraenglish', channel: 'Al Jazeera', logo: 'aj', color: '#D2982A' },
+    { name: 'Sky News Australia', handle: 'SkyNewsAustralia', channel: 'Sky AU', logo: 'sky', color: '#9B1B1F' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
   ],
   antarctica: [
-    { name: 'DW News', id: 'pqabxBKzZ6o', channel: 'DW' },
-    { name: 'France 24 English', id: 'h3MuIUNCCzI', channel: 'France 24' },
+    { name: 'DW News', handle: 'daborewelle', channel: 'DW', logo: 'dw', color: '#0078D4' },
+    { name: 'France 24 English', handle: 'FRANCE24English', channel: 'France 24', logo: 'f24', color: '#00A5E5' },
+    { name: 'Euronews', handle: 'euronews', channel: 'Euronews', logo: 'en', color: '#003D7A' },
   ],
 };
 
 const REFRESH_INTERVAL = 60 * 1000;
 
 const COUNTRIES_BY_CONTINENT = {
-  africa: ['Nigeria','South Africa','Kenya','Egypt','Ethiopia','Ghana','Tanzania','Uganda','Morocco','Algeria','Sudan','Libya','Tunisia','Senegal','Cameroon','Congo','Somalia','Zimbabwe','Mozambique','Angola','Mali','Niger','Rwanda','Ivory Coast','Madagascar'],
-  asia: ['China','India','Japan','South Korea','North Korea','Indonesia','Pakistan','Bangladesh','Philippines','Vietnam','Thailand','Myanmar','Malaysia','Taiwan','Iran','Iraq','Syria','Saudi Arabia','Israel','Palestine','Turkey','Afghanistan','Yemen','Lebanon','Jordan',['UAE','United Arab Emirates'],'Qatar','Kuwait','Oman','Nepal','Sri Lanka','Cambodia','Laos','Mongolia','Uzbekistan','Kazakhstan','Singapore','Hong Kong'],
-  europe: ['Ukraine','Russia','France','Germany',['UK','Britain','England','Scotland'],'Spain','Italy','Poland','Netherlands','Belgium','Sweden','Norway','Denmark','Finland','Greece','Portugal','Ireland','Austria','Switzerland',['Czech Republic','Czech'],'Romania','Hungary','Serbia','Croatia','Bulgaria','Slovakia','Lithuania','Latvia','Estonia','Moldova','Belarus','Georgia','Albania','Kosovo','Bosnia','Montenegro','Iceland','Luxembourg','Malta','Cyprus'],
-  north_america: [['United States','US','USA','America'],'Canada','Mexico','Cuba','Haiti','Jamaica','Dominican Republic','Guatemala','Honduras','El Salvador','Nicaragua','Costa Rica','Panama','Puerto Rico','Trinidad','Bahamas','Barbados'],
-  south_america: ['Brazil','Argentina','Colombia','Chile','Peru','Venezuela','Ecuador','Bolivia','Paraguay','Uruguay','Guyana','Suriname'],
-  oceania: ['Australia','New Zealand','Fiji','Papua New Guinea','Samoa','Tonga','Solomon Islands','Vanuatu'],
+  africa: ['Nigeria', 'South Africa', 'Kenya', 'Egypt', 'Ethiopia', 'Ghana', 'Tanzania', 'Uganda', 'Morocco', 'Algeria', 'Sudan', 'Libya', 'Tunisia', 'Senegal', 'Cameroon', 'Congo', 'Somalia', 'Zimbabwe', 'Mozambique', 'Angola', 'Mali', 'Niger', 'Rwanda', 'Ivory Coast', 'Madagascar'],
+  asia: ['China', 'India', 'Japan', 'South Korea', 'North Korea', 'Indonesia', 'Pakistan', 'Bangladesh', 'Philippines', 'Vietnam', 'Thailand', 'Myanmar', 'Malaysia', 'Taiwan', 'Iran', 'Iraq', 'Syria', 'Saudi Arabia', 'Israel', 'Palestine', 'Turkey', 'Afghanistan', 'Yemen', 'Lebanon', 'Jordan', ['UAE', 'United Arab Emirates'], 'Qatar', 'Kuwait', 'Oman', 'Nepal', 'Sri Lanka', 'Cambodia', 'Laos', 'Mongolia', 'Uzbekistan', 'Kazakhstan', 'Singapore', 'Hong Kong'],
+  europe: ['Ukraine', 'Russia', 'France', 'Germany', ['UK', 'Britain', 'England', 'Scotland'], 'Spain', 'Italy', 'Poland', 'Netherlands', 'Belgium', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Greece', 'Portugal', 'Ireland', 'Austria', 'Switzerland', ['Czech Republic', 'Czech'], 'Romania', 'Hungary', 'Serbia', 'Croatia', 'Bulgaria', 'Slovakia', 'Lithuania', 'Latvia', 'Estonia', 'Moldova', 'Belarus', 'Georgia', 'Albania', 'Kosovo', 'Bosnia', 'Montenegro', 'Iceland', 'Luxembourg', 'Malta', 'Cyprus'],
+  north_america: [['United States', 'US', 'USA', 'America'], 'Canada', 'Mexico', 'Cuba', 'Haiti', 'Jamaica', 'Dominican Republic', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama', 'Puerto Rico', 'Trinidad', 'Bahamas', 'Barbados'],
+  south_america: ['Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru', 'Venezuela', 'Ecuador', 'Bolivia', 'Paraguay', 'Uruguay', 'Guyana', 'Suriname'],
+  oceania: ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'Samoa', 'Tonga', 'Solomon Islands', 'Vanuatu'],
   antarctica: ['Antarctica'],
 };
+
+// ===== Geographic Relevance Filter =====
+// Flatten nested country arrays (e.g. ['UK', 'Britain']) into a flat list of lowercase strings
+const _continentKeywords = Object.fromEntries(
+  Object.entries(COUNTRIES_BY_CONTINENT).map(([continent, countries]) => [
+    continent,
+    countries.flatMap(c => Array.isArray(c) ? c : [c]).map(c => c.toLowerCase()),
+  ])
+);
+
+function isRelevantToContinent(article, continent) {
+  // These continents have no strict geographic filter
+  if (continent === 'breaking' || continent === 'antarctica') return true;
+
+  const text = `${article.title} ${article.snippet || ''}`.toLowerCase();
+  const target = _continentKeywords[continent] || [];
+
+  // If the article explicitly mentions a target-continent country → keep
+  if (target.some(c => text.includes(c))) return true;
+
+  // If the article mentions a country from a DIFFERENT continent → drop
+  const foreignMention = Object.entries(_continentKeywords).some(([c, keywords]) => {
+    if (c === continent || c === 'antarctica') return false;
+    return keywords.some(k => text.includes(k));
+  });
+  if (foreignMention) return false;
+
+  // No specific country mentioned → keep (general/global story)
+  return true;
+}
 
 // ===== State =====
 let currentContinent = null;
 let currentArticles = [];
 let displayedArticles = [];
 let activeCountryFilter = null;
+let activeTopicFilter = null;
 let activeSearchQuery = '';
 let refreshTimer = null;
 let refreshBarEl = null;
 let refreshStart = 0;
 let bookmarks = [];
+let readArticles = new Set();
+
+// YouTube validation cache
+const _ytValidCache = new Map();
+const YT_VALID_TTL = 10 * 60 * 1000;
+
+async function checkYouTubeHandle(handle) {
+  const now = Date.now();
+  const cached = _ytValidCache.get(handle);
+  if (cached && (now - cached.ts) < YT_VALID_TTL) return cached.valid;
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/@' + handle + '/live')}&format=json`;
+    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(5000) });
+    const valid = res.ok;
+    _ytValidCache.set(handle, { valid, ts: now });
+    return valid;
+  } catch {
+    _ytValidCache.set(handle, { valid: false, ts: now });
+    return false;
+  }
+}
 
 // In-memory cache
 const cache = {};
@@ -134,18 +202,54 @@ const CACHE_DURATION = 2 * 60 * 1000;
 document.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
   loadBookmarks();
+  loadReadArticles();
   createRefreshBar();
   setupScrollToTop();
   loadContinents();
   setupKeyboardShortcuts();
+  registerServiceWorker();
+
+  // Mount globe loader inside boot overlay
+  const bootMount = document.getElementById('bootGlobeMount');
+  if (bootMount && window.GlobeLoader) {
+    bootMount.appendChild(window.GlobeLoader.create({ size: 200 }));
+  }
+
+  // Auto-select last continent or Europe as default
+  const lastContinent = localStorage.getItem('wn-last-continent') || 'europe';
+  await selectContinent(lastContinent);
+
+  // Fade out boot overlay
+  const boot = document.getElementById('bootOverlay');
+  if (boot) {
+    boot.classList.remove('visible');
+    setTimeout(() => boot.remove(), 500);
+  }
 });
 
 // ===== RSS Fetching (client-side) =====
+async function fetchWithProxy(url) {
+  // Try each proxy in order, starting from the last one that worked
+  for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+    const proxyIdx = (currentProxyIndex + attempt) % CORS_PROXIES.length;
+    const proxy = CORS_PROXIES[proxyIdx];
+    try {
+      const res = await fetch(proxy + encodeURIComponent(url), { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (!text || text.length < 50) throw new Error('Empty response');
+      currentProxyIndex = proxyIdx; // remember which proxy worked
+      return text;
+    } catch (err) {
+      console.warn(`Proxy ${proxyIdx} failed for ${url}: ${err.message}`);
+    }
+  }
+  throw new Error('All proxies failed');
+}
+
 async function fetchFeed(source) {
   try {
-    const res = await fetch(CORS_PROXY + encodeURIComponent(source.url));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
+    const text = await fetchWithProxy(source.url);
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
 
@@ -158,7 +262,7 @@ async function fetchFeed(source) {
       const link = item.querySelector('link')?.textContent || '#';
       const pubDate = item.querySelector('pubDate')?.textContent || new Date().toISOString();
       const description = item.querySelector('description')?.textContent || '';
-      const snippet = description.replace(/<[^>]*>/g, '').substring(0, 200);
+      const snippet = description.replace(/<[^>]*>/g, '').substring(0, 400);
 
       // Extract media: try multiple RSS media patterns
       const enclosure = item.querySelector('enclosure');
@@ -211,6 +315,15 @@ async function fetchFeed(source) {
         if (imgMatch) image = imgMatch[1];
       }
 
+      // Fallback: extract image from content:encoded (full HTML body)
+      if (!image) {
+        const contentEncoded = item.getElementsByTagNameNS('http://purl.org/rss/1.0/modules/content/', 'encoded')[0];
+        if (contentEncoded) {
+          const imgMatch = contentEncoded.textContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+          if (imgMatch) image = imgMatch[1];
+        }
+      }
+
       // Detect video from link URL patterns
       if (!video && link.match(/\/video\//i)) {
         mediaType = 'video';
@@ -242,6 +355,22 @@ async function getNewsForContinent(continent) {
     return cache[continent].data;
   }
 
+  // Try the Express backend first — server-side caching, no CORS proxies needed
+  try {
+    const res = await fetch(`/api/news/${encodeURIComponent(continent)}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const articles = (data.articles || []).filter(a => isRelevantToContinent(a, continent));
+      cache[continent] = { data: articles, timestamp: now };
+      return articles;
+    }
+  } catch {
+    // Server unavailable — fall through to direct CORS proxy fetch
+  }
+
+  // CORS proxy fallback (local dev without server, or server down)
   const sources = FEEDS[continent];
   if (!sources) return [];
 
@@ -299,7 +428,7 @@ async function getNewsForContinent(continent) {
     groups.push(best);
   }
 
-  const unique = groups;
+  const unique = groups.filter(a => isRelevantToContinent(a, continent));
 
   cache[continent] = { data: unique, timestamp: now };
   return unique;
@@ -307,13 +436,13 @@ async function getNewsForContinent(continent) {
 
 // ===== Extractive Summary (client-side) =====
 const SUMMARY_STOP_WORDS = new Set([
-  'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
-  'is','are','was','were','be','been','has','had','have','do','does','did',
-  'will','would','could','should','may','might','shall','can','this','that',
-  'it','its','from','as','not','no','so','if','than','then','more','also',
-  'into','over','after','before','about','up','out','new','says','said','he',
-  'she','they','their','his','her','who','what','when','where','how','why',
-  'all','been','being','some','any','each','which','us','we','our','you',
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+  'is', 'are', 'was', 'were', 'be', 'been', 'has', 'had', 'have', 'do', 'does', 'did',
+  'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'this', 'that',
+  'it', 'its', 'from', 'as', 'not', 'no', 'so', 'if', 'than', 'then', 'more', 'also',
+  'into', 'over', 'after', 'before', 'about', 'up', 'out', 'new', 'says', 'said', 'he',
+  'she', 'they', 'their', 'his', 'her', 'who', 'what', 'when', 'where', 'how', 'why',
+  'all', 'been', 'being', 'some', 'any', 'each', 'which', 'us', 'we', 'our', 'you',
 ]);
 
 function extractKeywords(articles) {
@@ -331,14 +460,35 @@ function extractKeywords(articles) {
   return Object.entries(freq)
     .filter(([, count]) => count >= 2)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
+    .slice(0, 12)
     .map(([word]) => word);
+}
+
+// Truncate text at the last complete sentence that fits within maxLen
+function truncateAtSentence(text, maxLen) {
+  if (!text || text.length <= maxLen) return text;
+  const trimmed = text.substring(0, maxLen);
+  // Try to find the last sentence-ending punctuation
+  const lastPeriod = trimmed.lastIndexOf('. ');
+  const lastExcl = trimmed.lastIndexOf('! ');
+  const lastQ = trimmed.lastIndexOf('? ');
+  const lastBreak = Math.max(lastPeriod, lastExcl, lastQ);
+  if (lastBreak > maxLen * 0.3) {
+    return trimmed.substring(0, lastBreak + 1);
+  }
+  // Fallback: break at last space to avoid cutting a word
+  const lastSpace = trimmed.lastIndexOf(' ');
+  if (lastSpace > maxLen * 0.5) {
+    return trimmed.substring(0, lastSpace) + '...';
+  }
+  return trimmed + '...';
 }
 
 function groupByTheme(articles, keywords) {
   const themes = {};
   const used = new Set();
 
+  // Build two-word phrases from adjacent keyword pairs for better labels
   for (const keyword of keywords) {
     const matching = articles.filter((a, i) => {
       if (used.has(i)) return false;
@@ -346,20 +496,38 @@ function groupByTheme(articles, keywords) {
       return text.includes(keyword);
     });
     if (matching.length >= 2) {
-      const label = keyword.charAt(0).toUpperCase() + keyword.slice(1);
-      themes[label] = matching.slice(0, 4);
-      matching.slice(0, 4).forEach(m => {
+      // Try to create a descriptive label from the most common title words in this group
+      const label = buildThemeLabel(matching, keyword);
+      themes[label] = matching.slice(0, 5);
+      matching.slice(0, 5).forEach(m => {
         used.add(articles.indexOf(m));
       });
     }
   }
 
-  const remaining = articles.filter((_, i) => !used.has(i)).slice(0, 5);
+  const remaining = articles.filter((_, i) => !used.has(i)).slice(0, 6);
   if (remaining.length > 0) {
-    themes['Other Headlines'] = remaining;
+    themes['Other Notable Stories'] = remaining;
   }
 
   return themes;
+}
+
+// Create a descriptive theme label from a group of related articles
+function buildThemeLabel(articles, keyword) {
+  // Collect all title words from the group, excluding stop words
+  const wordFreq = {};
+  for (const a of articles) {
+    const words = a.title.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 2 && !SUMMARY_STOP_WORDS.has(w));
+    for (const w of words) {
+      wordFreq[w] = (wordFreq[w] || 0) + 1;
+    }
+  }
+  // Get the top 2 most common words (including the keyword)
+  const sorted = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]);
+  const topWords = sorted.slice(0, 2).map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+  if (topWords.length >= 2) return topWords.join(' & ');
+  return keyword.charAt(0).toUpperCase() + keyword.slice(1);
 }
 
 function buildSummary(articles, continentName) {
@@ -370,20 +538,37 @@ function buildSummary(articles, continentName) {
   const keywords = extractKeywords(articles);
   const themes = groupByTheme(articles, keywords);
   const sourceSet = [...new Set(articles.map(a => a.source))];
+  const totalArticles = articles.length;
 
-  let md = `## Today's Briefing: ${continentName}\n\n`;
+  let md = `## Today's News Briefing: ${continentName}\n\n`;
 
+  // Overview paragraph
+  const topStories = articles.slice(0, 3).map(a => `"${a.title}"`).join(', ');
+  md += `Today's coverage from **${continentName}** includes **${totalArticles} articles** from ${sourceSet.length} sources. `;
+  md += `Top stories include ${topStories}.\n\n`;
+
+  // Themed sections with full descriptions
   for (const [theme, items] of Object.entries(themes)) {
-    md += `**${theme}**\n`;
+    md += `### ${theme}\n\n`;
     for (const item of items) {
-      const snippet = item.snippet ? ` — ${item.snippet.substring(0, 120)}` : '';
-      md += `- ${item.title}${snippet} *(${item.source})*\n`;
+      const snippet = item.snippet ? truncateAtSentence(item.snippet, 250) : '';
+      if (snippet) {
+        md += `- **${item.title}** — ${snippet} *(${item.source})*\n`;
+      } else {
+        md += `- **${item.title}** *(${item.source})*\n`;
+      }
     }
     md += '\n';
   }
 
-  md += `**Key Topics:** ${keywords.slice(0, 6).join(', ')}\n\n`;
-  md += `*Based on ${articles.length} articles from ${sourceSet.join(', ')}.*`;
+  // Key topics
+  md += `### Key Topics\n\n`;
+  md += keywords.slice(0, 8).map(k => `\`${k}\``).join('  ') + '\n\n';
+
+  // Source attribution
+  md += `---\n\n`;
+  md += `*This briefing was generated from ${totalArticles} articles sourced from ${sourceSet.join(', ')}. `;
+  md += `Last updated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.*`;
 
   return md;
 }
@@ -455,12 +640,11 @@ function toggleBookmark(link, title, source, event) {
 
 function toggleBookmarks() {
   const panel = document.getElementById('bookmarksPanel');
-  if (panel.style.display === 'none') {
-    panel.style.display = 'block';
-    renderBookmarksList();
-  } else {
-    panel.style.display = 'none';
-  }
+  const btn = document.getElementById('bookmarksToggle');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) renderBookmarksList();
 }
 
 function renderBookmarksList() {
@@ -476,6 +660,33 @@ function renderBookmarksList() {
       <button class="bookmark-item-remove" onclick="toggleBookmark('${escapeHtml(b.link)}', '', '', event)" title="Remove">&times;</button>
     </div>
   `).join('');
+}
+
+// ===== Read Tracking =====
+function loadReadArticles() {
+  try {
+    readArticles = new Set(JSON.parse(localStorage.getItem('wn-read') || '[]'));
+  } catch {
+    readArticles = new Set();
+  }
+}
+
+function markAsRead(link) {
+  if (readArticles.has(link)) return;
+  readArticles.add(link);
+  // Cap at 1000 entries to avoid unbounded storage growth
+  if (readArticles.size > 1000) {
+    const arr = [...readArticles];
+    readArticles = new Set(arr.slice(-1000));
+  }
+  localStorage.setItem('wn-read', JSON.stringify([...readArticles]));
+  // Update the card visually without re-rendering the grid
+  const card = document.querySelector(`.news-card[data-link="${CSS.escape(link)}"]`);
+  if (card) card.classList.add('news-card--read');
+}
+
+function isRead(link) {
+  return readArticles.has(link);
 }
 
 // ===== Toast =====
@@ -574,12 +785,15 @@ function setupKeyboardShortcuts() {
 
 // ===== Continent Loading =====
 function loadContinents() {
-  const continents = Object.keys(FEEDS).map(id => ({
-    id,
-    name: id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    sourceCount: FEEDS[id].length,
-    sources: FEEDS[id].map(s => s.name),
-  }));
+  const continents = [
+    { id: 'breaking', name: 'Breaking', sourceCount: Object.values(FEEDS).flat().length, sources: [] },
+    ...Object.keys(FEEDS).filter(id => id !== 'antarctica').map(id => ({
+      id,
+      name: id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      sourceCount: FEEDS[id].length,
+      sources: FEEDS[id].map(s => s.name),
+    }))
+  ];
   renderContinentNav(continents);
 }
 
@@ -588,28 +802,57 @@ function renderContinentNav(continents) {
   nav.innerHTML = '';
   continents.forEach((c, i) => {
     const btn = document.createElement('button');
-    btn.className = 'continent-btn';
+    btn.className = c.id === 'breaking' ? 'continent-btn breaking-tab' : 'continent-btn';
     btn.dataset.continent = c.id;
-    btn.innerHTML = `<span class="emoji">${CONTINENT_EMOJIS[c.id] || '🌐'}</span> ${c.name} <span class="btn-shortcut">${i + 1}</span>`;
+    btn.setAttribute('aria-label', `${c.name} — ${c.sourceCount} source${c.sourceCount !== 1 ? 's' : ''}`);
+    btn.setAttribute('aria-current', 'false');
+    btn.innerHTML = `<span class="emoji" aria-hidden="true">${CONTINENT_EMOJIS[c.id] || '🌐'}</span><span class="btn-label">${c.name}</span><span class="btn-shortcut" aria-hidden="true">${i + 1}</span>`;
     btn.addEventListener('click', () => selectContinent(c.id));
     nav.appendChild(btn);
   });
 }
 
 async function selectContinent(continent) {
+  // Glass transition sweep
+  playGlassTransition();
+
   document.querySelectorAll('.continent-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.continent === continent);
+    const isActive = btn.dataset.continent === continent;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-current', isActive ? 'page' : 'false');
   });
 
   currentContinent = continent;
+  try { localStorage.setItem('wn-last-continent', continent); } catch {}
   activeSearchQuery = '';
   const searchInput = document.getElementById('searchInput');
   if (searchInput) searchInput.value = '';
   document.getElementById('searchClear').style.display = 'none';
   document.getElementById('searchResultsCount').textContent = '';
 
+  if (continent === 'breaking') {
+    await fetchBreakingNews();
+    startAutoRefresh();
+    return;
+  }
+
   await fetchNews(continent);
   startAutoRefresh();
+}
+
+// ===== Glass Transition Sweep =====
+function playGlassTransition() {
+  let el = document.getElementById('glassSweep');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'glassSweep';
+    el.className = 'glass-sweep';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('active');
+  // Force reflow so animation restarts
+  void el.offsetWidth;
+  el.classList.add('active');
 }
 
 // ===== Fetch News =====
@@ -617,7 +860,13 @@ async function fetchNews(continent) {
   const container = document.getElementById('newsContainer');
   const badges = document.getElementById('sourceBadges');
 
-  container.innerHTML = buildSkeletonHTML();
+  // Use globe loader for inline loading state
+  if (window.GlobeLoader) {
+    container.innerHTML = '';
+    container.appendChild(window.GlobeLoader.buildInlineLoader('Fetching latest articles'));
+  } else {
+    container.innerHTML = buildSkeletonHTML();
+  }
 
   try {
     const articles = await getNewsForContinent(continent);
@@ -629,17 +878,18 @@ async function fetchNews(continent) {
       .join('');
 
     // Last updated
-    document.getElementById('lastUpdated').textContent =
-      `Updated ${formatTime(new Date())}`;
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    if (lastUpdatedEl) lastUpdatedEl.textContent = `Updated ${formatTime(new Date())}`;
 
     // Store articles
     currentArticles = articles;
     activeCountryFilter = null;
+    activeTopicFilter = null;
 
-    // Show toolbar, search bar
-    document.getElementById('toolbar').style.display = 'flex';
+    // Show search bar
     document.getElementById('searchBar').style.display = 'flex';
 
+    buildTopicFilter(articles);
     buildCountryFilter(articles);
     buildTrendingTopics(articles);
 
@@ -654,7 +904,8 @@ async function fetchNews(continent) {
     }
 
     renderArticles(articles);
-    renderLiveStreams(continent);
+    buildNewsTicker(articles);
+    await renderLiveStreams(continent);
   } catch (err) {
     console.error('Fetch error:', err);
     container.innerHTML = `
@@ -665,10 +916,199 @@ async function fetchNews(continent) {
   }
 }
 
+// ===== Breaking News =====
+async function fetchBreakingNews() {
+  const container = document.getElementById('newsContainer');
+  const badges = document.getElementById('sourceBadges');
+
+  // Clear live streams section
+  const existing = document.getElementById('liveStreamsSection');
+  if (existing) existing.remove();
+
+  // Show globe loader
+  if (window.GlobeLoader) {
+    container.innerHTML = '';
+    container.appendChild(window.GlobeLoader.buildInlineLoader('Scanning all sources for breaking news…'));
+  } else {
+    container.innerHTML = buildSkeletonHTML();
+  }
+  badges.innerHTML = '<span class="source-badge">All sources</span>';
+
+  // Fetch all continent feeds in parallel
+  const allFeeds = Object.entries(FEEDS).flatMap(([continent, feeds]) =>
+    feeds.map(feed => fetchFeed(feed).then(articles =>
+      articles.map(a => ({ ...a, continent }))
+    ).catch(() => []))
+  );
+
+  const results = await Promise.allSettled(allFeeds);
+  const allArticles = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+  if (allArticles.length === 0) {
+    container.innerHTML = '<div class="error-msg"><p>No breaking news found. Try again shortly.</p></div>';
+    return;
+  }
+
+  const clusters = clusterBreakingNews(allArticles);
+  renderBreakingView(clusters);
+}
+
+// Score and cluster all articles to find the biggest stories
+function clusterBreakingNews(articles) {
+  const now = Date.now();
+  const BREAKING_KW = ['breaking', 'urgent', 'developing', 'emergency', 'crisis', 'just in', 'alert', 'kills', 'dead', 'attack', 'explosion', 'launch', 'crash', 'disaster'];
+  const STOPWORDS = new Set(['the','a','an','in','of','to','for','and','or','is','are','was','were','be','been','have','has','had','do','does','did','will','would','could','should','may','might','at','by','from','with','as','on','it','its','that','this','but','if','not','no','what','who','how','when','where','says','said','say','new','more','one','two','first','last','after','into','over','also','than','amid','why','some','their','they','our','his','her','him']);
+
+  function getKeywords(title) {
+    return title.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter(w => w.length > 3 && !STOPWORDS.has(w));
+  }
+
+  // Score each article
+  const scored = articles.map(a => {
+    let score = 0;
+    const text = (a.title + ' ' + (a.snippet || '')).toLowerCase();
+    const ageMs = a.pubDate ? (now - new Date(a.pubDate).getTime()) : Infinity;
+
+    if (ageMs < 30 * 60 * 1000) score += 10;
+    else if (ageMs < 2 * 60 * 60 * 1000) score += 5;
+    else if (ageMs < 6 * 60 * 60 * 1000) score += 2;
+    else if (ageMs < 24 * 60 * 60 * 1000) score += 1;
+
+    BREAKING_KW.forEach(kw => { if (text.includes(kw)) score += 3; });
+
+    return { ...a, score, _kw: getKeywords(a.title) };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Cluster by keyword overlap (≥2 shared significant words = same story)
+  const clusters = [];
+  const used = new Set();
+
+  for (let i = 0; i < scored.length; i++) {
+    if (used.has(i)) continue;
+    const kw1 = new Set(scored[i]._kw);
+    const cluster = [scored[i]];
+    used.add(i);
+
+    for (let j = i + 1; j < Math.min(scored.length, 120); j++) {
+      if (used.has(j)) continue;
+      const overlap = scored[j]._kw.filter(w => kw1.has(w)).length;
+      if (overlap >= 2) {
+        cluster.push(scored[j]);
+        used.add(j);
+      }
+    }
+
+    clusters.push({
+      lead: cluster[0],
+      articles: cluster,
+      clusterScore: cluster.reduce((s, a) => s + a.score, 0) + cluster.length * 4,
+      searchTerms: [...kw1].slice(0, 4),
+    });
+  }
+
+  return clusters.sort((a, b) => b.clusterScore - a.clusterScore);
+}
+
+function renderBreakingView(clusters) {
+  const container = document.getElementById('newsContainer');
+
+  if (!clusters.length) {
+    container.innerHTML = '<div class="error-msg"><p>No breaking news right now. Check back soon.</p></div>';
+    return;
+  }
+
+  const top = clusters[0];
+  const others = clusters.slice(1, 7);
+
+  const ytQuery = encodeURIComponent(top.searchTerms.join(' ') + ' live news');
+  const ytSearchUrl = `https://www.youtube.com/results?search_query=${ytQuery}`;
+  const leadTime = top.lead.pubDate ? formatRelativeTime(top.lead.pubDate) : '';
+  const coverageCount = top.articles.length;
+
+  container.innerHTML = `
+    <div class="breaking-view">
+      <div class="breaking-hero">
+        <div class="breaking-eyebrow">
+          <span class="breaking-badge-pulse"><span class="live-dot"></span>BREAKING</span>
+          ${coverageCount > 1 ? `<span class="breaking-coverage-badge">${coverageCount} sources covering this</span>` : ''}
+          ${leadTime ? `<span class="breaking-time-badge">${leadTime}</span>` : ''}
+        </div>
+        <h2 class="breaking-headline">${escapeHtml(top.lead.title)}</h2>
+        ${top.lead.snippet ? `<p class="breaking-snippet">${escapeHtml(top.lead.snippet.substring(0, 240))}${top.lead.snippet.length > 240 ? '…' : ''}</p>` : ''}
+        <div class="breaking-hero-footer">
+          <span class="breaking-hero-source">${escapeHtml(top.lead.source || '')}</span>
+          <a href="${escapeHtml(top.lead.link)}" target="_blank" rel="noopener noreferrer" class="breaking-read-btn">Read full story →</a>
+        </div>
+      </div>
+
+      <div class="breaking-video-section">
+        <div class="breaking-video-header">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Live Coverage
+        </div>
+        <iframe
+          class="breaking-iframe"
+          src="https://www.youtube.com/embed?listType=search&list=${ytQuery}&autoplay=0"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"
+          title="Live coverage of ${escapeHtml(top.lead.title)}"
+        ></iframe>
+        <a href="${ytSearchUrl}" target="_blank" rel="noopener noreferrer" class="breaking-yt-btn">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+          Search live coverage on YouTube
+        </a>
+      </div>
+
+      ${top.articles.length > 1 ? `
+      <div class="breaking-all-sources">
+        <div class="breaking-section-title">All coverage</div>
+        ${top.articles.slice(0, 6).map(a => `
+          <a href="${escapeHtml(a.link)}" target="_blank" rel="noopener noreferrer" class="breaking-source-row">
+            <span class="source-logo-badge">${escapeHtml(a.sourceLogo || a.source?.substring(0,3).toUpperCase() || '?')}</span>
+            <span class="breaking-source-title">${escapeHtml(a.title)}</span>
+            ${a.pubDate ? `<span class="breaking-source-time">${formatRelativeTime(a.pubDate)}</span>` : ''}
+          </a>
+        `).join('')}
+      </div>
+      ` : ''}
+
+      ${others.length > 0 ? `
+      <div class="breaking-others">
+        <div class="breaking-section-title">Other major stories right now</div>
+        <div class="news-grid">${others.map(c => renderCard(c.lead)).join('')}</div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  setupScrollReveal();
+  setupOgImageFetcher();
+}
+
+function formatRelativeTime(dateStr) {
+  const now = Date.now();
+  const ms = now - new Date(dateStr).getTime();
+  if (isNaN(ms)) return '';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 // ===== YouTube Live Streams =====
-function renderLiveStreams(continent) {
+async function renderLiveStreams(continent) {
   const streams = YOUTUBE_LIVES[continent];
   if (!streams || streams.length === 0) return;
+
+  const validStreams = (await Promise.all(streams.map(async s => ({ ...s, valid: await checkYouTubeHandle(s.handle) })))).filter(s => s.valid);
+  if (validStreams.length === 0) return;
 
   // Remove existing live section if any
   const existing = document.getElementById('liveStreamsSection');
@@ -681,35 +1121,35 @@ function renderLiveStreams(continent) {
     <div class="live-streams-header">
       <div class="live-streams-title">
         <span class="live-dot-inline"></span>
-        Live News Streams
+        <span>Live News Streams</span>
+        <span class="live-streams-count">${validStreams.length}</span>
       </div>
-      <button class="live-toggle-btn" onclick="toggleLiveStreams()">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
+      <div class="live-streams-sub">Tap any channel to watch live on YouTube</div>
     </div>
     <div class="live-streams-grid" id="liveStreamsGrid">
-      ${streams.map(s => `
-        <div class="live-stream-card">
-          <div class="live-stream-embed" id="embed-${s.id}">
-            <img class="live-stream-thumb" src="https://img.youtube.com/vi/${s.id}/mqdefault.jpg"
-                 alt="${escapeHtml(s.name)}" loading="lazy"
-                 onclick="loadYouTubeEmbed('${s.id}', this)">
-            <div class="live-stream-play" onclick="loadYouTubeEmbed('${s.id}', this.previousElementSibling)">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
+      ${validStreams.map((s) => `
+        <button type="button" class="live-stream-card" onclick="openLiveStream('${s.handle}')" aria-label="Watch ${escapeHtml(s.name)} live">
+          <div class="live-stream-thumb-wrap">
+            <div class="live-stream-thumb" style="--brand:${s.color}">
+              <span class="live-stream-mono">${escapeHtml(s.channel.substring(0, 3).toUpperCase())}</span>
+              <span class="live-stream-play" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              </span>
             </div>
-            <div class="live-badge-overlay">
-              <span class="live-dot-small"></span> LIVE
+            <span class="live-pill"><span class="live-pill-dot"></span>LIVE</span>
+          </div>
+          <div class="live-stream-meta">
+            <div class="live-stream-meta-main">
+              <div class="live-stream-name">${escapeHtml(s.name)}</div>
+              <div class="live-stream-channel">${escapeHtml(s.channel)} &middot; 24/7</div>
             </div>
+            <svg class="live-stream-ext" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
           </div>
-          <div class="live-stream-info">
-            <span class="live-stream-name">${escapeHtml(s.name)}</span>
-            <span class="live-stream-channel">${escapeHtml(s.channel)}</span>
-          </div>
-        </div>
+        </button>
       `).join('')}
     </div>
   `;
@@ -718,16 +1158,18 @@ function renderLiveStreams(continent) {
   container.parentNode.insertBefore(section, container);
 }
 
-function loadYouTubeEmbed(videoId, imgEl) {
-  const embedDiv = document.getElementById('embed-' + videoId);
-  embedDiv.innerHTML = `
-    <iframe
-      src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1"
-      frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
-  `;
+// Open YouTube live stream — always works, never broken
+function openLiveStream(handle) {
+  window.open(`https://www.youtube.com/@${handle}/live`, '_blank', 'noopener,noreferrer');
+}
+
+// Darken a hex color by amount
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
 function toggleLiveStreams() {
@@ -744,19 +1186,19 @@ function toggleLiveStreams() {
 
 // ===== Skeleton Loading =====
 function buildSkeletonHTML() {
-  const cards = Array.from({ length: 6 }, (_, i) => `
-    <div class="skeleton-card">
-      ${i % 3 !== 2 ? '<div class="skeleton-image"></div>' : ''}
+  const cards = Array.from({ length: 6 }, () => `
+    <div class="skeleton-card" aria-hidden="true">
+      <div class="skeleton-image"></div>
       <div class="skeleton-body">
         <div class="skeleton-line header"></div>
         <div class="skeleton-line title long"></div>
-        <div class="skeleton-line medium"></div>
         <div class="skeleton-line long"></div>
+        <div class="skeleton-line medium"></div>
         <div class="skeleton-line short"></div>
       </div>
     </div>
   `).join('');
-  return `<div class="skeleton-grid">${cards}</div>`;
+  return `<div class="skeleton-grid" role="status" aria-label="Loading articles">${cards}</div>`;
 }
 
 // ===== Render Articles =====
@@ -772,92 +1214,204 @@ function renderArticles(articles) {
       </div>`;
     return;
   }
-  container.innerHTML = `<div class="news-grid">${
-    articles.map((article, i) => renderCard(article, i)).join('')
-  }</div>`;
+  container.innerHTML = `<div class="news-grid">${articles.map(article => renderCard(article)).join('')
+    }</div>`;
+  setupScrollReveal();
+  setupOgImageFetcher();
 }
 
-function renderCard(article, index) {
+// Detect topic category from article text (matching Stitch design)
+const TOPIC_CATEGORIES = [
+  { label: 'Sports', keywords: ['football', 'soccer', 'premier league', 'champions league', 'bundesliga', 'serie a', 'la liga', 'nfl', 'nba', 'mlb', 'nhl', 'formula 1', 'f1', 'grand prix', 'olympic', 'world cup', 'euros', 'wimbledon', 'rugby', 'cricket', 'tennis', 'golf', 'cycling', 'athlete', 'coach', 'sack', 'transfer', 'signing', 'manager', 'scored', 'goal', 'defeat', 'victory', 'final', 'semifinal', 'tournament', 'match', 'league', 'championship', 'medal', 'player', 'squad', 'club', 'fixture'] },
+  { label: 'Politics', keywords: ['election', 'president', 'prime minister', 'minister', 'parliament', 'government', 'senate', 'congress', 'vote', 'political', 'diplomat', 'treaty', 'sanction', 'chancellor', 'referendum', 'ballot', 'campaign', 'party', 'coalition', 'opposition', 'secretary of state', 'white house', 'kremlin', 'nato', 'un ', 'united nations'] },
+  { label: 'Conflict', keywords: ['war', 'military', 'attack', 'bomb', 'soldier', 'troops', 'invasion', 'missile', 'ceasefire', 'combat', 'weapon', 'airstrike', 'drone', 'killed', 'dead', 'casualties', 'siege', 'offensive', 'frontline', 'rebel', 'militia', 'hostage', 'strike', 'shooting', 'explosion'] },
+  { label: 'Economy', keywords: ['market', 'economy', 'inflation', 'stock', 'trade', 'gdp', 'recession', 'bank', 'finance', 'fiscal', 'debt', 'currency', 'tariff', 'interest rate', 'imf', 'world bank', 'investment', 'budget', 'deficit', 'unemployment', 'growth', 'shares', 'oil price', 'bitcoin', 'crypto'] },
+  { label: 'Tech', keywords: ['technology', 'ai', 'artificial intelligence', 'software', 'cyber', 'digital', 'startup', 'robot', 'quantum', 'blockchain', 'app', 'elon musk', 'openai', 'chatgpt', 'google', 'apple', 'microsoft', 'meta', 'tesla', 'spacex', 'hack', 'data breach', 'chip', 'semiconductor'] },
+  { label: 'Climate', keywords: ['climate', 'carbon', 'emission', 'warming', 'renewable', 'environment', 'pollution', 'wildfire', 'flood', 'drought', 'hurricane', 'earthquake', 'tsunami', 'cyclone', 'storm', 'glacier', 'deforestation', 'biodiversity', 'fossil fuel', 'solar', 'wind energy', 'cop'] },
+  { label: 'Health', keywords: ['health', 'vaccine', 'disease', 'hospital', 'pandemic', 'virus', 'medical', 'drug', 'cancer', 'outbreak', 'who ', 'epidemic', 'mental health', 'surgery', 'treatment', 'nhs', 'mortality', 'infection', 'mutation', 'pathogen'] },
+  { label: 'Science', keywords: ['science', 'space', 'nasa', 'research', 'discovery', 'study', 'asteroid', 'planet', 'ocean', 'species', 'genome', 'telescope', 'black hole', 'launch', 'rocket', 'satellite', 'experiment', 'fossil', 'biology', 'physics', 'chemistry', 'archaeological'] },
+  { label: 'Culture', keywords: ['culture', 'film', 'movie', 'music', 'art', 'festival', 'museum', 'award', 'oscar', 'grammy', 'book', 'theater', 'heritage', 'concert', 'celebrity', 'actor', 'director', 'singer', 'artist', 'exhibition', 'fashion', 'cuisine'] },
+];
+
+// ===== OG Image Lazy Fetcher =====
+// Fetches the real article thumbnail (og:image) for cards that have no RSS image.
+// Uses the existing CORS proxy. Max 3 concurrent fetches to avoid rate-limiting.
+
+const _ogQueue = [];
+let _ogActive = 0;
+const OG_MAX_CONCURRENT = 3;
+
+function _processOgQueue() {
+  while (_ogActive < OG_MAX_CONCURRENT && _ogQueue.length > 0) {
+    const { url, resolve } = _ogQueue.shift();
+    _ogActive++;
+    _fetchOgImage(url)
+      .then(resolve)
+      .finally(() => { _ogActive--; _processOgQueue(); });
+  }
+}
+
+function _enqueueOgFetch(url) {
+  return new Promise(resolve => {
+    _ogQueue.push({ url, resolve });
+    _processOgQueue();
+  });
+}
+
+async function _fetchOgImage(articleUrl) {
+  try {
+    const html = await fetchWithProxy(articleUrl);
+    const patterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i,
+    ];
+    for (const pat of patterns) {
+      const match = html.match(pat);
+      if (match?.[1]) {
+        let imgUrl = match[1];
+        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+        if (!imgUrl.startsWith('data:') && imgUrl.length > 12) return imgUrl;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function setupOgImageFetcher() {
+  const cards = document.querySelectorAll('.news-card[data-link]');
+  if (!cards.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const card = entry.target;
+      observer.unobserve(card);
+
+      const placeholder = card.querySelector('.card-media.no-image');
+      if (!placeholder) return;
+
+      const link = card.dataset.link;
+      if (!link || link === '#') return;
+
+      _enqueueOgFetch(link).then(imgUrl => {
+        if (!imgUrl) return;
+        // Double-check placeholder is still in the DOM
+        if (!card.querySelector('.card-media.no-image')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-media card-img-wrap';
+        wrapper.innerHTML = `<img src="${escapeHtml(imgUrl)}" alt="" loading="lazy"
+             class="card-img-main"
+             onload="this.classList.add('loaded')"
+             onerror="this.parentElement.remove()">`;
+        placeholder.replaceWith(wrapper);
+      });
+    });
+  }, { rootMargin: '400px' });
+
+  cards.forEach(card => {
+    if (card.querySelector('.card-media.no-image')) {
+      observer.observe(card);
+    }
+  });
+}
+
+function detectTopic(title, snippet) {
+  const text = `${title} ${snippet}`.toLowerCase();
+  for (const cat of TOPIC_CATEGORIES) {
+    if (cat.keywords.some(kw => text.includes(kw))) return cat.label;
+  }
+  return 'World';
+}
+
+function renderCard(article) {
   const logoClass = article.sourceLogo?.toLowerCase() || '';
   const timeAgo = getTimeAgo(new Date(article.pubDate));
   const isBreaking = isBreakingNews(new Date(article.pubDate));
   const isVideo = article.mediaType === 'video';
   const saved = isBookmarked(article.link);
+  const read = isRead(article.link);
   const escapedLink = escapeHtml(article.link);
   const escapedTitle = escapeHtml(article.title).replace(/'/g, "\\'");
+  const escapedSource = escapeHtml(article.source).replace(/'/g, "\\'");
+  const topic = detectTopic(article.title, article.snippet || '');
+  const topicClass = `topic-${topic.toLowerCase()}`;
 
-  // Build image/media section
-  let mediaHTML = '';
+  // Build image section — blur-up: shimmer placeholder fades out once image loads
+  let mediaHtml = '';
   if (article.image) {
-    mediaHTML = `
-      <div class="card-media">
-        <img src="${escapeHtml(article.image)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'">
-        ${isVideo ? `
-          <div class="media-badge video-badge">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            Video
-          </div>
-        ` : ''}
-      </div>
-    `;
-  } else if (isVideo) {
-    mediaHTML = `
+    mediaHtml = `
+      <div class="card-media card-img-wrap">
+        <img src="${escapeHtml(article.image)}" alt="" loading="lazy"
+             class="card-img-main"
+             onload="this.classList.add('loaded')"
+             onerror="this.closest('.card-img-wrap').innerHTML='<div class=\\'card-media-fallback\\'><svg viewBox=\\'0 0 24 24\\' width=\\'32\\' height=\\'32\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'">
+        <span class="card-topic-badge ${topicClass}">${topic}</span>
+        ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
+      </div>`;
+  } else {
+    const watermark = escapeHtml((article.sourceLogo || '').toUpperCase().slice(0, 4));
+    mediaHtml = `
       <div class="card-media no-image">
-        <div class="media-badge video-badge">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
+        <span class="card-media-source-watermark" aria-hidden="true">${watermark}</span>
+        <div class="card-media-fallback">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
           </svg>
-          Video
         </div>
-      </div>
-    `;
+        ${isVideo ? '<span class="media-badge video-badge">VIDEO</span>' : ''}
+      </div>`;
   }
 
   return `
     <a href="${escapedLink}" target="_blank" rel="noopener noreferrer"
-       class="news-card ${article.image ? 'has-media' : ''}" style="animation-delay: ${index * 0.04}s">
-      ${mediaHTML}
+       class="news-card reveal-card${read ? ' news-card--read' : ''}${isBreaking ? ' news-card--breaking' : ''}"
+       data-link="${escapedLink}"
+       onclick="markAsRead('${escapedLink}')">
+      ${mediaHtml}
       <div class="card-body">
-        <div class="card-source">
-          <div class="source-tag">
-            <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
-            <span class="source-name">${escapeHtml(article.source)}</span>
-          </div>
-          <div class="card-meta">
-            ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
-            <span class="card-time">${timeAgo}</span>
-          </div>
+        <div class="card-source-header">
+          <div class="source-logo ${logoClass}">${escapeHtml(article.sourceLogo || '?')}</div>
+          <span class="source-name">${escapeHtml(article.source)}</span>
+          ${isBreaking ? '<span class="badge-breaking">BREAKING</span>' : ''}
+          ${read ? '<span class="badge-read" aria-label="Already read">Read</span>' : ''}
         </div>
         <h3 class="card-title">${escapeHtml(article.title)}</h3>
         ${article.snippet ? `<p class="card-snippet">${escapeHtml(article.snippet)}</p>` : ''}
-        <div class="card-footer">
-          <div class="card-verified">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
-              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
-            </svg>
-            ${article.sourceCount > 1
-              ? `<span class="multi-source" title="Also covered by: ${escapeHtml((article.otherSources || []).join(', '))}">${article.sourceCount} sources</span>`
-              : 'Verified source'}
-          </div>
-          <div class="card-actions">
-            <button class="card-action-btn ${saved ? 'bookmarked' : ''}"
-                    onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapeHtml(article.source)}', event)"
-                    title="${saved ? 'Remove bookmark' : 'Save article'}">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        <div class="card-footer-new">
+          <span class="card-time">${timeAgo}</span>
+          <div class="card-footer-right">
+            <div class="card-actions" role="group" aria-label="Article actions">
+              <button class="card-action-btn${saved ? ' bookmarked' : ''}"
+                      onclick="toggleBookmark('${escapedLink}', '${escapedTitle}', '${escapedSource}', event)"
+                      title="${saved ? 'Remove bookmark' : 'Save article'}"
+                      aria-label="${saved ? 'Remove from saved articles' : 'Save article'}"
+                      aria-pressed="${saved}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+              <button class="card-action-btn"
+                      onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)"
+                      title="Share article"
+                      aria-label="Share article">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </button>
+            </div>
+            <div class="card-verified-new">
+              <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
+                <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.28 6.72a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l4-4z"/>
               </svg>
-            </button>
-            <button class="card-action-btn" onclick="shareArticle('${escapedLink}', '${escapedTitle}', event)" title="Share">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-            </button>
+              Verified source
+            </div>
           </div>
         </div>
       </div>
@@ -882,11 +1436,11 @@ function shareArticle(link, title, event) {
     event.stopPropagation();
   }
   if (navigator.share) {
-    navigator.share({ title, url: link }).catch(() => {});
+    navigator.share({ title, url: link }).catch(() => { });
   } else {
     navigator.clipboard.writeText(link).then(() => {
       showToast('Link copied to clipboard');
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -908,6 +1462,10 @@ function clearSearch() {
 
 function applyFilters() {
   let filtered = currentArticles;
+
+  if (activeTopicFilter) {
+    filtered = filtered.filter(a => detectTopic(a.title, a.snippet || '') === activeTopicFilter);
+  }
 
   if (activeCountryFilter) {
     const aliases = getAliasesFor(activeCountryFilter).map(a => a.toLowerCase());
@@ -932,48 +1490,16 @@ function applyFilters() {
 
 // ===== Trending Topics =====
 const STOP_WORDS = new Set([
-  'the','that','this','with','from','have','been','were','will','would','could','should',
-  'what','when','where','which','their','there','they','them','than','then','into','over',
-  'after','before','about','also','more','some','other','just','says','said','over','under',
-  'people','first','last','year','years','time','news','world','back','make','many','most',
+  'the', 'that', 'this', 'with', 'from', 'have', 'been', 'were', 'will', 'would', 'could', 'should',
+  'what', 'when', 'where', 'which', 'their', 'there', 'they', 'them', 'than', 'then', 'into', 'over',
+  'after', 'before', 'about', 'also', 'more', 'some', 'other', 'just', 'says', 'said', 'over', 'under',
+  'people', 'first', 'last', 'year', 'years', 'time', 'news', 'world', 'back', 'make', 'many', 'most',
 ]);
 
-function buildTrendingTopics(articles) {
+function buildTrendingTopics() {
   const bar = document.getElementById('trendingBar');
-  const container = document.getElementById('trendingTopics');
-
-  if (articles.length < 3) {
-    bar.style.display = 'none';
-    return;
-  }
-
-  const freq = {};
-  for (const article of articles) {
-    const text = `${article.title}`.toLowerCase();
-    const words = text.match(/[a-z]{4,}/g) || [];
-    const seen = new Set();
-    for (const word of words) {
-      if (STOP_WORDS.has(word) || seen.has(word)) continue;
-      seen.add(word);
-      freq[word] = (freq[word] || 0) + 1;
-    }
-  }
-
-  const topics = Object.entries(freq)
-    .filter(([, count]) => count >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
-
-  if (topics.length === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-
-  bar.style.display = 'flex';
-  container.innerHTML = topics.map(t =>
-    `<button class="trending-topic" onclick="searchTopic('${escapeHtml(t)}')">${escapeHtml(t)}</button>`
-  ).join('');
+  // Trending bar hidden in current design
+  bar.style.display = 'none';
 }
 
 function searchTopic(topic) {
@@ -1003,6 +1529,43 @@ function detectCountries(articles) {
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => ({ name, count }));
+}
+
+// ===== Topic Filter =====
+const TOPIC_ICONS = { Politics:'🗳️', Economy:'📈', Tech:'💻', Conflict:'⚔️', Climate:'🌿', Health:'🏥', Science:'🔭', Sports:'⚽', Culture:'🎭', World:'🌐' };
+
+function buildTopicFilter(articles) {
+  // Remove previous bar
+  const old = document.getElementById('topicFilterBar');
+  if (old) old.remove();
+
+  const counts = {};
+  for (const a of articles) {
+    const t = detectTopic(a.title, a.snippet || '');
+    counts[t] = (counts[t] || 0) + 1;
+  }
+  const topics = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  if (topics.length === 0) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'topicFilterBar';
+  bar.className = 'topic-filter-bar';
+  bar.innerHTML = `
+    <button class="topic-chip active" data-topic="" onclick="filterByTopic(null)">All</button>
+    ${topics.map(([t, n]) => `<button class="topic-chip" data-topic="${escapeHtml(t)}" onclick="filterByTopic('${escapeHtml(t)}')">${TOPIC_ICONS[t] || '📰'} ${escapeHtml(t)}<span class="chip-count">${n}</span></button>`).join('')}
+  `;
+
+  const filtersContainer = document.querySelector('.filters-container');
+  const filterBar = document.getElementById('filterBar');
+  filtersContainer.insertBefore(bar, filterBar);
+}
+
+function filterByTopic(topic) {
+  activeTopicFilter = topic;
+  document.querySelectorAll('#topicFilterBar .topic-chip').forEach(btn => {
+    btn.classList.toggle('active', (btn.dataset.topic || null) === topic);
+  });
+  applyFilters();
 }
 
 function buildCountryFilter(articles) {
@@ -1112,10 +1675,10 @@ async function summarizeNews() {
     let articles = currentArticles;
     if (activeCountryFilter) {
       const ALIASES = {
-        'United States': ['united states','us','usa','america'],
-        'UK': ['uk','britain','england','scotland'],
-        'UAE': ['uae','united arab emirates'],
-        'Czech Republic': ['czech republic','czech'],
+        'United States': ['united states', 'us', 'usa', 'america'],
+        'UK': ['uk', 'britain', 'england', 'scotland'],
+        'UAE': ['uae', 'united arab emirates'],
+        'Czech Republic': ['czech republic', 'czech'],
       };
       const terms = ALIASES[activeCountryFilter] || [activeCountryFilter.toLowerCase()];
       articles = articles.filter(a => {
@@ -1162,7 +1725,7 @@ function resetSummarizeBtn() {
   const btn = document.getElementById('summarizeBtn');
   btn.disabled = false;
   btn.innerHTML = `
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       <polyline points="14 2 14 8 20 8"/>
       <line x1="16" y1="13" x2="8" y2="13"/>
@@ -1180,8 +1743,10 @@ function closeSummary(event) {
 // ===== Markdown Renderer =====
 function renderMarkdown(text) {
   return text
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^---$/gm, '<hr>')
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
     .replace(/^# (.+)$/gm, '<h2>$1</h2>')
@@ -1195,7 +1760,67 @@ function renderMarkdown(text) {
     .replace(/<p>(<h[234]>)/g, '$1')
     .replace(/(<\/h[234]>)<\/p>/g, '$1')
     .replace(/<p>(<ul>)/g, '$1')
-    .replace(/(<\/ul>)<\/p>/g, '$1');
+    .replace(/(<\/ul>)<\/p>/g, '$1')
+    .replace(/<p>(<hr>)<\/p>/g, '$1');
+}
+
+// ===== News Ticker =====
+function buildNewsTicker(articles) {
+  // Remove existing ticker
+  const existing = document.getElementById('newsTicker');
+  if (existing) existing.remove();
+
+  if (!articles || articles.length === 0) return;
+
+  // Pick top 10 latest headlines for the ticker
+  const headlines = articles.slice(0, 10);
+
+  const ticker = document.createElement('div');
+  ticker.id = 'newsTicker';
+  ticker.className = 'news-ticker';
+
+  const items = headlines.map(a =>
+    `<span class="ticker-item"><span class="ticker-dot"></span><a href="${escapeHtml(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a></span>`
+  ).join('');
+
+  // Duplicate items for seamless infinite scroll
+  ticker.innerHTML = `
+    <div class="ticker-track">
+      <span class="ticker-label"><span class="ticker-label-dot"></span>LATEST</span>
+      ${items}
+      <span class="ticker-label"><span class="ticker-label-dot"></span>LATEST</span>
+      ${items}
+    </div>
+  `;
+
+  // Insert after header
+  const header = document.querySelector('header');
+  header.after(ticker);
+}
+
+// ===== Scroll Reveal =====
+function setupScrollReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        // Stagger the animation slightly
+        const delay = i * 60;
+        setTimeout(() => entry.target.classList.add('visible'), delay);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal-card').forEach(card => observer.observe(card));
+}
+
+// ===== PWA Service Worker =====
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('Service worker registration failed:', err.message);
+    });
+  }
 }
 
 // ===== Utilities =====
