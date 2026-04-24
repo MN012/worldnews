@@ -7,6 +7,7 @@ const CORS_PROXIES = [
 let currentProxyIndex = 0;
 
 const CONTINENT_EMOJIS = {
+  breaking: '🔴',
   africa: '🌍',
   asia: '🌏',
   europe: '🌍',
@@ -16,7 +17,7 @@ const CONTINENT_EMOJIS = {
   antarctica: '🧊',
 };
 
-const CONTINENT_ORDER = ['africa', 'asia', 'europe', 'north_america', 'south_america', 'oceania', 'antarctica'];
+const CONTINENT_ORDER = ['africa', 'asia', 'europe', 'north_america', 'south_america', 'oceania'];
 
 const FEEDS = {
   africa: [
@@ -50,15 +51,15 @@ const FEEDS = {
   ],
   south_america: [
     { name: 'BBC Latin America', url: 'https://feeds.bbci.co.uk/news/world/latin_america/rss.xml', logo: 'BBC' },
-    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
     { name: 'France24 Americas', url: 'https://www.france24.com/en/americas/rss', logo: 'F24' },
-    { name: 'DW News', url: 'https://rss.dw.com/xml/rss-en-world', logo: 'DW' },
+    { name: 'DW Latin America', url: 'https://rss.dw.com/xml/rss-en-lat', logo: 'DW' },
+    { name: 'teleSUR English', url: 'https://www.telesurenglish.net/rss/news/3.xml', logo: 'TSR' },
   ],
   oceania: [
-    { name: 'BBC Asia-Pacific', url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', logo: 'BBC' },
     { name: 'ABC Australia', url: 'https://www.abc.net.au/news/feed/2942460/rss.xml', logo: 'ABC' },
-    { name: 'France24 Asia-Pacific', url: 'https://www.france24.com/en/asia-pacific/rss', logo: 'F24' },
-    { name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', logo: 'AJ' },
+    { name: 'RNZ Pacific', url: 'https://www.rnz.co.nz/rss/pacific.xml', logo: 'RNZ' },
+    { name: 'Guardian Australia', url: 'https://www.theguardian.com/australia-news/rss', logo: 'GUA' },
+    { name: 'ABC Pacific', url: 'https://www.abc.net.au/news/feed/51120/rss.xml', logo: 'ABC' },
   ],
   antarctica: [
     { name: 'BBC Science', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', logo: 'BBC' },
@@ -130,17 +131,68 @@ const COUNTRIES_BY_CONTINENT = {
   antarctica: ['Antarctica'],
 };
 
+// ===== Geographic Relevance Filter =====
+// Flatten nested country arrays (e.g. ['UK', 'Britain']) into a flat list of lowercase strings
+const _continentKeywords = Object.fromEntries(
+  Object.entries(COUNTRIES_BY_CONTINENT).map(([continent, countries]) => [
+    continent,
+    countries.flatMap(c => Array.isArray(c) ? c : [c]).map(c => c.toLowerCase()),
+  ])
+);
+
+function isRelevantToContinent(article, continent) {
+  // These continents have no strict geographic filter
+  if (continent === 'breaking' || continent === 'antarctica') return true;
+
+  const text = `${article.title} ${article.snippet || ''}`.toLowerCase();
+  const target = _continentKeywords[continent] || [];
+
+  // If the article explicitly mentions a target-continent country → keep
+  if (target.some(c => text.includes(c))) return true;
+
+  // If the article mentions a country from a DIFFERENT continent → drop
+  const foreignMention = Object.entries(_continentKeywords).some(([c, keywords]) => {
+    if (c === continent || c === 'antarctica') return false;
+    return keywords.some(k => text.includes(k));
+  });
+  if (foreignMention) return false;
+
+  // No specific country mentioned → keep (general/global story)
+  return true;
+}
+
 // ===== State =====
 let currentContinent = null;
 let currentArticles = [];
 let displayedArticles = [];
 let activeCountryFilter = null;
+let activeTopicFilter = null;
 let activeSearchQuery = '';
 let refreshTimer = null;
 let refreshBarEl = null;
 let refreshStart = 0;
 let bookmarks = [];
 let readArticles = new Set();
+
+// YouTube validation cache
+const _ytValidCache = new Map();
+const YT_VALID_TTL = 10 * 60 * 1000;
+
+async function checkYouTubeHandle(handle) {
+  const now = Date.now();
+  const cached = _ytValidCache.get(handle);
+  if (cached && (now - cached.ts) < YT_VALID_TTL) return cached.valid;
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/@' + handle + '/live')}&format=json`;
+    const res = await fetch(oembedUrl, { signal: AbortSignal.timeout(5000) });
+    const valid = res.ok;
+    _ytValidCache.set(handle, { valid, ts: now });
+    return valid;
+  } catch {
+    _ytValidCache.set(handle, { valid: false, ts: now });
+    return false;
+  }
+}
 
 // In-memory cache
 const cache = {};
@@ -156,6 +208,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadContinents();
   setupKeyboardShortcuts();
   registerServiceWorker();
+
+  // Mount globe loader inside boot overlay
+  const bootMount = document.getElementById('bootGlobeMount');
+  if (bootMount && window.GlobeLoader) {
+    bootMount.appendChild(window.GlobeLoader.create({ size: 200 }));
+  }
+
+  // Auto-select last continent or Europe as default
+  const lastContinent = localStorage.getItem('wn-last-continent') || 'europe';
+  await selectContinent(lastContinent);
+
+  // Fade out boot overlay
+  const boot = document.getElementById('bootOverlay');
+  if (boot) {
+    boot.classList.remove('visible');
+    setTimeout(() => boot.remove(), 500);
+  }
 });
 
 // ===== RSS Fetching (client-side) =====
@@ -293,7 +362,7 @@ async function getNewsForContinent(continent) {
     });
     if (res.ok) {
       const data = await res.json();
-      const articles = data.articles || [];
+      const articles = (data.articles || []).filter(a => isRelevantToContinent(a, continent));
       cache[continent] = { data: articles, timestamp: now };
       return articles;
     }
@@ -359,7 +428,7 @@ async function getNewsForContinent(continent) {
     groups.push(best);
   }
 
-  const unique = groups;
+  const unique = groups.filter(a => isRelevantToContinent(a, continent));
 
   cache[continent] = { data: unique, timestamp: now };
   return unique;
@@ -716,12 +785,15 @@ function setupKeyboardShortcuts() {
 
 // ===== Continent Loading =====
 function loadContinents() {
-  const continents = Object.keys(FEEDS).map(id => ({
-    id,
-    name: id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    sourceCount: FEEDS[id].length,
-    sources: FEEDS[id].map(s => s.name),
-  }));
+  const continents = [
+    { id: 'breaking', name: 'Breaking', sourceCount: Object.values(FEEDS).flat().length, sources: [] },
+    ...Object.keys(FEEDS).filter(id => id !== 'antarctica').map(id => ({
+      id,
+      name: id.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      sourceCount: FEEDS[id].length,
+      sources: FEEDS[id].map(s => s.name),
+    }))
+  ];
   renderContinentNav(continents);
 }
 
@@ -730,17 +802,20 @@ function renderContinentNav(continents) {
   nav.innerHTML = '';
   continents.forEach((c, i) => {
     const btn = document.createElement('button');
-    btn.className = 'continent-btn';
+    btn.className = c.id === 'breaking' ? 'continent-btn breaking-tab' : 'continent-btn';
     btn.dataset.continent = c.id;
     btn.setAttribute('aria-label', `${c.name} — ${c.sourceCount} source${c.sourceCount !== 1 ? 's' : ''}`);
     btn.setAttribute('aria-current', 'false');
-    btn.innerHTML = `<span class="emoji" aria-hidden="true">${CONTINENT_EMOJIS[c.id] || '🌐'}</span> ${c.name} <span class="btn-shortcut" aria-hidden="true">${i + 1}</span>`;
+    btn.innerHTML = `<span class="emoji" aria-hidden="true">${CONTINENT_EMOJIS[c.id] || '🌐'}</span><span class="btn-label">${c.name}</span><span class="btn-shortcut" aria-hidden="true">${i + 1}</span>`;
     btn.addEventListener('click', () => selectContinent(c.id));
     nav.appendChild(btn);
   });
 }
 
 async function selectContinent(continent) {
+  // Glass transition sweep
+  playGlassTransition();
+
   document.querySelectorAll('.continent-btn').forEach(btn => {
     const isActive = btn.dataset.continent === continent;
     btn.classList.toggle('active', isActive);
@@ -748,14 +823,36 @@ async function selectContinent(continent) {
   });
 
   currentContinent = continent;
+  try { localStorage.setItem('wn-last-continent', continent); } catch {}
   activeSearchQuery = '';
   const searchInput = document.getElementById('searchInput');
   if (searchInput) searchInput.value = '';
   document.getElementById('searchClear').style.display = 'none';
   document.getElementById('searchResultsCount').textContent = '';
 
+  if (continent === 'breaking') {
+    await fetchBreakingNews();
+    startAutoRefresh();
+    return;
+  }
+
   await fetchNews(continent);
   startAutoRefresh();
+}
+
+// ===== Glass Transition Sweep =====
+function playGlassTransition() {
+  let el = document.getElementById('glassSweep');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'glassSweep';
+    el.className = 'glass-sweep';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('active');
+  // Force reflow so animation restarts
+  void el.offsetWidth;
+  el.classList.add('active');
 }
 
 // ===== Fetch News =====
@@ -763,7 +860,13 @@ async function fetchNews(continent) {
   const container = document.getElementById('newsContainer');
   const badges = document.getElementById('sourceBadges');
 
-  container.innerHTML = buildSkeletonHTML();
+  // Use globe loader for inline loading state
+  if (window.GlobeLoader) {
+    container.innerHTML = '';
+    container.appendChild(window.GlobeLoader.buildInlineLoader('Fetching latest articles'));
+  } else {
+    container.innerHTML = buildSkeletonHTML();
+  }
 
   try {
     const articles = await getNewsForContinent(continent);
@@ -781,10 +884,12 @@ async function fetchNews(continent) {
     // Store articles
     currentArticles = articles;
     activeCountryFilter = null;
+    activeTopicFilter = null;
 
     // Show search bar
     document.getElementById('searchBar').style.display = 'flex';
 
+    buildTopicFilter(articles);
     buildCountryFilter(articles);
     buildTrendingTopics(articles);
 
@@ -800,7 +905,7 @@ async function fetchNews(continent) {
 
     renderArticles(articles);
     buildNewsTicker(articles);
-    renderLiveStreams(continent);
+    await renderLiveStreams(continent);
   } catch (err) {
     console.error('Fetch error:', err);
     container.innerHTML = `
@@ -811,10 +916,199 @@ async function fetchNews(continent) {
   }
 }
 
+// ===== Breaking News =====
+async function fetchBreakingNews() {
+  const container = document.getElementById('newsContainer');
+  const badges = document.getElementById('sourceBadges');
+
+  // Clear live streams section
+  const existing = document.getElementById('liveStreamsSection');
+  if (existing) existing.remove();
+
+  // Show globe loader
+  if (window.GlobeLoader) {
+    container.innerHTML = '';
+    container.appendChild(window.GlobeLoader.buildInlineLoader('Scanning all sources for breaking news…'));
+  } else {
+    container.innerHTML = buildSkeletonHTML();
+  }
+  badges.innerHTML = '<span class="source-badge">All sources</span>';
+
+  // Fetch all continent feeds in parallel
+  const allFeeds = Object.entries(FEEDS).flatMap(([continent, feeds]) =>
+    feeds.map(feed => fetchFeed(feed).then(articles =>
+      articles.map(a => ({ ...a, continent }))
+    ).catch(() => []))
+  );
+
+  const results = await Promise.allSettled(allFeeds);
+  const allArticles = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+  if (allArticles.length === 0) {
+    container.innerHTML = '<div class="error-msg"><p>No breaking news found. Try again shortly.</p></div>';
+    return;
+  }
+
+  const clusters = clusterBreakingNews(allArticles);
+  renderBreakingView(clusters);
+}
+
+// Score and cluster all articles to find the biggest stories
+function clusterBreakingNews(articles) {
+  const now = Date.now();
+  const BREAKING_KW = ['breaking', 'urgent', 'developing', 'emergency', 'crisis', 'just in', 'alert', 'kills', 'dead', 'attack', 'explosion', 'launch', 'crash', 'disaster'];
+  const STOPWORDS = new Set(['the','a','an','in','of','to','for','and','or','is','are','was','were','be','been','have','has','had','do','does','did','will','would','could','should','may','might','at','by','from','with','as','on','it','its','that','this','but','if','not','no','what','who','how','when','where','says','said','say','new','more','one','two','first','last','after','into','over','also','than','amid','why','some','their','they','our','his','her','him']);
+
+  function getKeywords(title) {
+    return title.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter(w => w.length > 3 && !STOPWORDS.has(w));
+  }
+
+  // Score each article
+  const scored = articles.map(a => {
+    let score = 0;
+    const text = (a.title + ' ' + (a.snippet || '')).toLowerCase();
+    const ageMs = a.pubDate ? (now - new Date(a.pubDate).getTime()) : Infinity;
+
+    if (ageMs < 30 * 60 * 1000) score += 10;
+    else if (ageMs < 2 * 60 * 60 * 1000) score += 5;
+    else if (ageMs < 6 * 60 * 60 * 1000) score += 2;
+    else if (ageMs < 24 * 60 * 60 * 1000) score += 1;
+
+    BREAKING_KW.forEach(kw => { if (text.includes(kw)) score += 3; });
+
+    return { ...a, score, _kw: getKeywords(a.title) };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Cluster by keyword overlap (≥2 shared significant words = same story)
+  const clusters = [];
+  const used = new Set();
+
+  for (let i = 0; i < scored.length; i++) {
+    if (used.has(i)) continue;
+    const kw1 = new Set(scored[i]._kw);
+    const cluster = [scored[i]];
+    used.add(i);
+
+    for (let j = i + 1; j < Math.min(scored.length, 120); j++) {
+      if (used.has(j)) continue;
+      const overlap = scored[j]._kw.filter(w => kw1.has(w)).length;
+      if (overlap >= 2) {
+        cluster.push(scored[j]);
+        used.add(j);
+      }
+    }
+
+    clusters.push({
+      lead: cluster[0],
+      articles: cluster,
+      clusterScore: cluster.reduce((s, a) => s + a.score, 0) + cluster.length * 4,
+      searchTerms: [...kw1].slice(0, 4),
+    });
+  }
+
+  return clusters.sort((a, b) => b.clusterScore - a.clusterScore);
+}
+
+function renderBreakingView(clusters) {
+  const container = document.getElementById('newsContainer');
+
+  if (!clusters.length) {
+    container.innerHTML = '<div class="error-msg"><p>No breaking news right now. Check back soon.</p></div>';
+    return;
+  }
+
+  const top = clusters[0];
+  const others = clusters.slice(1, 7);
+
+  const ytQuery = encodeURIComponent(top.searchTerms.join(' ') + ' live news');
+  const ytSearchUrl = `https://www.youtube.com/results?search_query=${ytQuery}`;
+  const leadTime = top.lead.pubDate ? formatRelativeTime(top.lead.pubDate) : '';
+  const coverageCount = top.articles.length;
+
+  container.innerHTML = `
+    <div class="breaking-view">
+      <div class="breaking-hero">
+        <div class="breaking-eyebrow">
+          <span class="breaking-badge-pulse"><span class="live-dot"></span>BREAKING</span>
+          ${coverageCount > 1 ? `<span class="breaking-coverage-badge">${coverageCount} sources covering this</span>` : ''}
+          ${leadTime ? `<span class="breaking-time-badge">${leadTime}</span>` : ''}
+        </div>
+        <h2 class="breaking-headline">${escapeHtml(top.lead.title)}</h2>
+        ${top.lead.snippet ? `<p class="breaking-snippet">${escapeHtml(top.lead.snippet.substring(0, 240))}${top.lead.snippet.length > 240 ? '…' : ''}</p>` : ''}
+        <div class="breaking-hero-footer">
+          <span class="breaking-hero-source">${escapeHtml(top.lead.source || '')}</span>
+          <a href="${escapeHtml(top.lead.link)}" target="_blank" rel="noopener noreferrer" class="breaking-read-btn">Read full story →</a>
+        </div>
+      </div>
+
+      <div class="breaking-video-section">
+        <div class="breaking-video-header">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Live Coverage
+        </div>
+        <iframe
+          class="breaking-iframe"
+          src="https://www.youtube.com/embed?listType=search&list=${ytQuery}&autoplay=0"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"
+          title="Live coverage of ${escapeHtml(top.lead.title)}"
+        ></iframe>
+        <a href="${ytSearchUrl}" target="_blank" rel="noopener noreferrer" class="breaking-yt-btn">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+          Search live coverage on YouTube
+        </a>
+      </div>
+
+      ${top.articles.length > 1 ? `
+      <div class="breaking-all-sources">
+        <div class="breaking-section-title">All coverage</div>
+        ${top.articles.slice(0, 6).map(a => `
+          <a href="${escapeHtml(a.link)}" target="_blank" rel="noopener noreferrer" class="breaking-source-row">
+            <span class="source-logo-badge">${escapeHtml(a.sourceLogo || a.source?.substring(0,3).toUpperCase() || '?')}</span>
+            <span class="breaking-source-title">${escapeHtml(a.title)}</span>
+            ${a.pubDate ? `<span class="breaking-source-time">${formatRelativeTime(a.pubDate)}</span>` : ''}
+          </a>
+        `).join('')}
+      </div>
+      ` : ''}
+
+      ${others.length > 0 ? `
+      <div class="breaking-others">
+        <div class="breaking-section-title">Other major stories right now</div>
+        <div class="news-grid">${others.map(c => renderCard(c.lead)).join('')}</div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  setupScrollReveal();
+  setupOgImageFetcher();
+}
+
+function formatRelativeTime(dateStr) {
+  const now = Date.now();
+  const ms = now - new Date(dateStr).getTime();
+  if (isNaN(ms)) return '';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 // ===== YouTube Live Streams =====
-function renderLiveStreams(continent) {
+async function renderLiveStreams(continent) {
   const streams = YOUTUBE_LIVES[continent];
   if (!streams || streams.length === 0) return;
+
+  const validStreams = (await Promise.all(streams.map(async s => ({ ...s, valid: await checkYouTubeHandle(s.handle) })))).filter(s => s.valid);
+  if (validStreams.length === 0) return;
 
   // Remove existing live section if any
   const existing = document.getElementById('liveStreamsSection');
@@ -827,41 +1121,35 @@ function renderLiveStreams(continent) {
     <div class="live-streams-header">
       <div class="live-streams-title">
         <span class="live-dot-inline"></span>
-        Live News Streams
+        <span>Live News Streams</span>
+        <span class="live-streams-count">${validStreams.length}</span>
       </div>
-      <div id="live-streams-actions-container"></div>
+      <div class="live-streams-sub">Tap any channel to watch live on YouTube</div>
     </div>
     <div class="live-streams-grid" id="liveStreamsGrid">
-      ${streams.map((s, i) => `
-        <div class="live-stream-card" onclick="openLiveStream('${s.handle}')" style="cursor:pointer">
-          <div class="live-stream-embed" id="embed-${s.handle}">
-            <div class="live-stream-branded" style="background: linear-gradient(135deg, ${s.color} 0%, ${adjustColor(s.color, -40)} 100%)">
-              <div class="live-stream-branded-logo">${escapeHtml(s.channel.substring(0, 3).toUpperCase())}</div>
-              <div class="live-stream-play">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-              </div>
-              <div class="live-badge-overlay">
-                <span class="live-dot-small"></span> LIVE
-              </div>
+      ${validStreams.map((s) => `
+        <button type="button" class="live-stream-card" onclick="openLiveStream('${s.handle}')" aria-label="Watch ${escapeHtml(s.name)} live">
+          <div class="live-stream-thumb-wrap">
+            <div class="live-stream-thumb" style="--brand:${s.color}">
+              <span class="live-stream-mono">${escapeHtml(s.channel.substring(0, 3).toUpperCase())}</span>
+              <span class="live-stream-play" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              </span>
             </div>
+            <span class="live-pill"><span class="live-pill-dot"></span>LIVE</span>
           </div>
-          <div class="live-stream-info">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-              <div class="source-logo" style="background:${s.color};border-radius:8px">${escapeHtml(s.channel.substring(0, 2).toUpperCase())}</div>
-              <div style="min-width:0">
-                <div class="live-stream-name">${escapeHtml(s.name)}</div>
-                <div class="live-stream-channel">Watch live on YouTube</div>
-              </div>
+          <div class="live-stream-meta">
+            <div class="live-stream-meta-main">
+              <div class="live-stream-name">${escapeHtml(s.name)}</div>
+              <div class="live-stream-channel">${escapeHtml(s.channel)} &middot; 24/7</div>
             </div>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);flex-shrink:0">
+            <svg class="live-stream-ext" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
               <polyline points="15 3 21 3 21 9"/>
               <line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
           </div>
-        </div>
+        </button>
       `).join('')}
     </div>
   `;
@@ -934,15 +1222,15 @@ function renderArticles(articles) {
 
 // Detect topic category from article text (matching Stitch design)
 const TOPIC_CATEGORIES = [
-  { label: 'Politics', keywords: ['election', 'president', 'minister', 'parliament', 'government', 'senate', 'congress', 'vote', 'political', 'diplomat', 'treaty', 'sanction'] },
-  { label: 'Economy', keywords: ['market', 'economy', 'inflation', 'stock', 'trade', 'gdp', 'recession', 'bank', 'finance', 'fiscal', 'debt', 'currency', 'tariff'] },
-  { label: 'Tech', keywords: ['technology', 'ai', 'artificial intelligence', 'software', 'cyber', 'digital', 'startup', 'robot', 'quantum', 'blockchain', 'app'] },
-  { label: 'Conflict', keywords: ['war', 'military', 'attack', 'bomb', 'soldier', 'troops', 'invasion', 'missile', 'ceasefire', 'combat', 'weapon', 'airstrike'] },
-  { label: 'Climate', keywords: ['climate', 'carbon', 'emission', 'warming', 'renewable', 'environment', 'pollution', 'wildfire', 'flood', 'drought', 'hurricane', 'earthquake'] },
-  { label: 'Health', keywords: ['health', 'vaccine', 'disease', 'hospital', 'pandemic', 'virus', 'medical', 'drug', 'cancer', 'outbreak', 'who'] },
-  { label: 'Science', keywords: ['science', 'space', 'nasa', 'research', 'discovery', 'study', 'asteroid', 'planet', 'ocean', 'species', 'genome'] },
-  { label: 'Sports', keywords: ['football', 'soccer', 'olympic', 'champion', 'tournament', 'match', 'league', 'athlete', 'medal', 'cricket', 'tennis'] },
-  { label: 'Culture', keywords: ['culture', 'film', 'music', 'art', 'festival', 'museum', 'award', 'book', 'theater', 'heritage'] },
+  { label: 'Sports', keywords: ['football', 'soccer', 'premier league', 'champions league', 'bundesliga', 'serie a', 'la liga', 'nfl', 'nba', 'mlb', 'nhl', 'formula 1', 'f1', 'grand prix', 'olympic', 'world cup', 'euros', 'wimbledon', 'rugby', 'cricket', 'tennis', 'golf', 'cycling', 'athlete', 'coach', 'sack', 'transfer', 'signing', 'manager', 'scored', 'goal', 'defeat', 'victory', 'final', 'semifinal', 'tournament', 'match', 'league', 'championship', 'medal', 'player', 'squad', 'club', 'fixture'] },
+  { label: 'Politics', keywords: ['election', 'president', 'prime minister', 'minister', 'parliament', 'government', 'senate', 'congress', 'vote', 'political', 'diplomat', 'treaty', 'sanction', 'chancellor', 'referendum', 'ballot', 'campaign', 'party', 'coalition', 'opposition', 'secretary of state', 'white house', 'kremlin', 'nato', 'un ', 'united nations'] },
+  { label: 'Conflict', keywords: ['war', 'military', 'attack', 'bomb', 'soldier', 'troops', 'invasion', 'missile', 'ceasefire', 'combat', 'weapon', 'airstrike', 'drone', 'killed', 'dead', 'casualties', 'siege', 'offensive', 'frontline', 'rebel', 'militia', 'hostage', 'strike', 'shooting', 'explosion'] },
+  { label: 'Economy', keywords: ['market', 'economy', 'inflation', 'stock', 'trade', 'gdp', 'recession', 'bank', 'finance', 'fiscal', 'debt', 'currency', 'tariff', 'interest rate', 'imf', 'world bank', 'investment', 'budget', 'deficit', 'unemployment', 'growth', 'shares', 'oil price', 'bitcoin', 'crypto'] },
+  { label: 'Tech', keywords: ['technology', 'ai', 'artificial intelligence', 'software', 'cyber', 'digital', 'startup', 'robot', 'quantum', 'blockchain', 'app', 'elon musk', 'openai', 'chatgpt', 'google', 'apple', 'microsoft', 'meta', 'tesla', 'spacex', 'hack', 'data breach', 'chip', 'semiconductor'] },
+  { label: 'Climate', keywords: ['climate', 'carbon', 'emission', 'warming', 'renewable', 'environment', 'pollution', 'wildfire', 'flood', 'drought', 'hurricane', 'earthquake', 'tsunami', 'cyclone', 'storm', 'glacier', 'deforestation', 'biodiversity', 'fossil fuel', 'solar', 'wind energy', 'cop'] },
+  { label: 'Health', keywords: ['health', 'vaccine', 'disease', 'hospital', 'pandemic', 'virus', 'medical', 'drug', 'cancer', 'outbreak', 'who ', 'epidemic', 'mental health', 'surgery', 'treatment', 'nhs', 'mortality', 'infection', 'mutation', 'pathogen'] },
+  { label: 'Science', keywords: ['science', 'space', 'nasa', 'research', 'discovery', 'study', 'asteroid', 'planet', 'ocean', 'species', 'genome', 'telescope', 'black hole', 'launch', 'rocket', 'satellite', 'experiment', 'fossil', 'biology', 'physics', 'chemistry', 'archaeological'] },
+  { label: 'Culture', keywords: ['culture', 'film', 'movie', 'music', 'art', 'festival', 'museum', 'award', 'oscar', 'grammy', 'book', 'theater', 'heritage', 'concert', 'celebrity', 'actor', 'director', 'singer', 'artist', 'exhibition', 'fashion', 'cuisine'] },
 ];
 
 // ===== OG Image Lazy Fetcher =====
@@ -1175,6 +1463,10 @@ function clearSearch() {
 function applyFilters() {
   let filtered = currentArticles;
 
+  if (activeTopicFilter) {
+    filtered = filtered.filter(a => detectTopic(a.title, a.snippet || '') === activeTopicFilter);
+  }
+
   if (activeCountryFilter) {
     const aliases = getAliasesFor(activeCountryFilter).map(a => a.toLowerCase());
     filtered = filtered.filter(article => {
@@ -1237,6 +1529,43 @@ function detectCountries(articles) {
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => ({ name, count }));
+}
+
+// ===== Topic Filter =====
+const TOPIC_ICONS = { Politics:'🗳️', Economy:'📈', Tech:'💻', Conflict:'⚔️', Climate:'🌿', Health:'🏥', Science:'🔭', Sports:'⚽', Culture:'🎭', World:'🌐' };
+
+function buildTopicFilter(articles) {
+  // Remove previous bar
+  const old = document.getElementById('topicFilterBar');
+  if (old) old.remove();
+
+  const counts = {};
+  for (const a of articles) {
+    const t = detectTopic(a.title, a.snippet || '');
+    counts[t] = (counts[t] || 0) + 1;
+  }
+  const topics = Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  if (topics.length === 0) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'topicFilterBar';
+  bar.className = 'topic-filter-bar';
+  bar.innerHTML = `
+    <button class="topic-chip active" data-topic="" onclick="filterByTopic(null)">All</button>
+    ${topics.map(([t, n]) => `<button class="topic-chip" data-topic="${escapeHtml(t)}" onclick="filterByTopic('${escapeHtml(t)}')">${TOPIC_ICONS[t] || '📰'} ${escapeHtml(t)}<span class="chip-count">${n}</span></button>`).join('')}
+  `;
+
+  const filtersContainer = document.querySelector('.filters-container');
+  const filterBar = document.getElementById('filterBar');
+  filtersContainer.insertBefore(bar, filterBar);
+}
+
+function filterByTopic(topic) {
+  activeTopicFilter = topic;
+  document.querySelectorAll('#topicFilterBar .topic-chip').forEach(btn => {
+    btn.classList.toggle('active', (btn.dataset.topic || null) === topic);
+  });
+  applyFilters();
 }
 
 function buildCountryFilter(articles) {
